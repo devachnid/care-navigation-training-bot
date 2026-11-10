@@ -40,13 +40,13 @@ Not verified (no gateway key in the planning environment), so Task 2 exists to p
 3. Which voice names the gateway accepts and which sounds British.
 4. Latency on the practice network.
 
-## Design decisions to confirm
+## Design decisions (confirmed by the practice lead, 10 November 2026)
 
 - **The patient prompt is visible to the browser.** The hook sends `sessionConfig` (with instructions) from the client, so a trainee who opens dev tools could read the hidden facts. The prompt therefore never contains the answer key (`correctOutcome`, `acceptableAlternatives`, `unsafeOutcomes`). Acceptable for a PoC; a server-owned WebSocket relay would fix it and is out of scope.
 - **One addition to the brief's data model:** `debriefs.unsafe_outcome` (boolean), so "scenario 3 missed chest pain is marked unsafe" is a stored field, not something inferred from scores.
 - **Scenarios live in the seed file and are upserted on every deploy** (`npm run db:seed` runs in the build). Editing `src/scenarios/seed.ts` and redeploying is the whole workflow for adding one.
 - **Access gate is a signed cookie**, checked in each page and route by one helper. No middleware.
-- **Calls under 20 seconds get no debrief**; the session is saved with status `too_short`.
+- **Calls under 20 seconds are a fail with a score of 0**: status `too_short`, and a debrief row with `overall_score` 0 and no rubric scores. The model is not called.
 
 ## File Structure
 
