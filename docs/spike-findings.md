@@ -15,6 +15,18 @@ Tested with `ai@7.0.169`, `@ai-sdk/react@4.0.173`, `@ai-sdk/gateway@4.0.142`, mo
 | Scenario 3, handled well | Outcome correct, red flag handled, score 100%. |
 | WebSocket blocked? | Not from the test environment. Practice network still untested. |
 
+## Turn-taking (11 November 2026)
+
+In live use the caller sometimes started talking while the receptionist was mid-sentence. Reproduced with a recording containing natural pauses of 0.7 to 1.0 seconds inside two receptionist turns.
+
+| Setting | Times the caller cut in |
+|---|---|
+| `server-vad`, default (the original setting) | 2 of 2 turns |
+| `server-vad` with a 900 ms silence wait | 1 of 2 turns |
+| `semantic-vad` | 0 of 2 turns |
+
+`semantic-vad` is now the default. Reply delay after the receptionist genuinely finished was 0.8 to 0.9 seconds, the same as before. One recording, one run per setting. Known trade-off: if the receptionist trails off without finishing a sentence, the caller may wait noticeably longer before replying.
+
 ## Still open
 
 - **Voice.** Settled after the practice lead listened to samples of all ten voices: `ballad` for male callers, `coral` for female callers, set per scenario in the seed file. The caller prompt now asks for a South Wales accent and natural, unhurried delivery, which was judged a subtle improvement. Not yet heard in a live two-way call.

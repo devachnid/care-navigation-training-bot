@@ -38,6 +38,7 @@ Fill in `.env.local`:
 | `ACCESS_CODE` | The shared code trainees type. Changing it signs everyone out. |
 | `REALTIME_MODEL` | Voice model. Default `openai/gpt-realtime-2.1`. |
 | `DEBRIEF_MODEL` | Text model that writes the debrief, as a gateway model id. Required. |
+| `REALTIME_TURN_DETECTION` | Optional. JSON overriding how the caller decides you have finished speaking. Default `{"type":"semantic-vad"}`. To go back to silence-based detection with a longer wait: `{"type":"server-vad","silenceDurationMs":900}`. |
 | `REALTIME_PROVIDER_OPTIONS` | Optional. JSON passed to the voice session as provider options. |
 
 Then create the tables, load the scenarios and start:
