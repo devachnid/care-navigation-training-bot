@@ -20,6 +20,14 @@ describe('seed scenarios', () => {
       expect(s.unsafeOutcomes.length).toBeGreaterThan(0);
     }
   });
+  it('gives every caller a voice', () => {
+    expect(Object.fromEntries(scenarios.map(s => [s.id, s.voice]))).toEqual({
+      'sore-throat': 'coral',
+      'flashes-floaters': 'coral',
+      'angina-repeat': 'ballad',
+      'low-mood': 'ballad',
+    });
+  });
   it('sore throat has no red flags', () => {
     expect(scenarios.find(s => s.id === 'sore-throat')!.redFlags).toEqual([]);
   });

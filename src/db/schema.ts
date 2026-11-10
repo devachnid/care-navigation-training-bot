@@ -7,6 +7,7 @@ export const scenarios = pgTable('scenarios', {
   title: text('title').notNull(),
   difficulty: text('difficulty').$type<Scenario['difficulty']>().notNull(),
   persona: jsonb('persona').$type<Scenario['persona']>().notNull(),
+  voice: text('voice').$type<Scenario['voice']>().notNull().default('ballad'),
   openingLine: text('opening_line').notNull(),
   presentingStory: text('presenting_story').notNull(),
   hiddenFacts: jsonb('hidden_facts').$type<HiddenFact[]>().notNull(),

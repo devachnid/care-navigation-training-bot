@@ -1,0 +1,1 @@
+ALTER TABLE "scenarios" ADD COLUMN "voice" text DEFAULT 'ballad' NOT NULL;

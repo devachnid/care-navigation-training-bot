@@ -38,7 +38,6 @@ Fill in `.env.local`:
 | `ACCESS_CODE` | The shared code trainees type. Changing it signs everyone out. |
 | `REALTIME_MODEL` | Voice model. Default `openai/gpt-realtime-2.1`. |
 | `DEBRIEF_MODEL` | Text model that writes the debrief, as a gateway model id. Required. |
-| `REALTIME_VOICE` | Optional. Voice name, default `alloy`. |
 | `REALTIME_PROVIDER_OPTIONS` | Optional. JSON passed to the voice session as provider options. |
 
 Then create the tables, load the scenarios and start:
@@ -72,6 +71,7 @@ Edit [`src/scenarios/seed.ts`](src/scenarios/seed.ts) only, then redeploy (or ru
 | `id` | Permanent slug, lower case with hyphens. Do not change it once calls exist. |
 | `title`, `difficulty` | Shown on the scenario list. Keep the title from giving the answer away. |
 | `persona` | Invented name, age and a line of character. |
+| `voice` | Which voice plays the caller: `alloy`, `ash`, `ballad`, `coral`, `echo`, `sage`, `shimmer`, `verse`, `marin` or `cedar`. The practice chose `ballad` for male callers and `coral` for female callers. |
 | `openingLine` | The caller's first words. |
 | `presentingStory` | What the caller says unprompted. |
 | `hiddenFacts` | Things the caller only says if asked. Each has the `fact` and `unlockedBy`, the kind of question that brings it out. |

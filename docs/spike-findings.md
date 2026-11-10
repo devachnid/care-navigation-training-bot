@@ -17,7 +17,7 @@ Tested with `ai@7.0.169`, `@ai-sdk/react@4.0.173`, `@ai-sdk/gateway@4.0.142`, mo
 
 ## Still open
 
-- **Voice.** Using `alloy` (the documented default) with the accent set in the prompt. Nobody has listened to it. Other voices can be tried with the `REALTIME_VOICE` env var, no code change.
+- **Voice.** Settled after the practice lead listened to samples of all ten voices: `ballad` for male callers, `coral` for female callers, set per scenario in the seed file. The caller prompt now asks for a South Wales accent and natural, unhurried delivery, which was judged a subtle improvement. Not yet heard in a live two-way call.
 - **Low reasoning effort.** The installed SDK docs do not name a session option for it, so it is not set. Latency is already inside the target without it. If a key is found it can be supplied as JSON in `REALTIME_PROVIDER_OPTIONS`.
 - **Barge-in** (talking over the caller) was not tested.
 - **Scenarios 1, 2 and 4** have not been run by voice. Scenario 4 depends on tone, which synthetic speech cannot test.

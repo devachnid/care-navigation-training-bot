@@ -17,7 +17,7 @@ export type PatientSessionConfig = {
 export function buildSessionConfig(scenario: Scenario): PatientSessionConfig {
   const config: PatientSessionConfig = {
     instructions: buildPatientPrompt(scenario),
-    voice: process.env.REALTIME_VOICE || 'alloy',
+    voice: scenario.voice,
     // Both sides are transcribed so the debrief can quote them.
     inputAudioTranscription: {},
     outputAudioTranscription: {},

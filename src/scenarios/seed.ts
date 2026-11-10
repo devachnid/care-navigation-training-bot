@@ -18,6 +18,7 @@ export const scenarios: Scenario[] = [
       age: 34,
       description: 'Works in an office, busy, generally healthy. Friendly but wants this sorted today.',
     },
+    voice: 'coral',
     openingLine: "Hello, is that the surgery? I need an appointment with the doctor please.",
     presentingStory:
       'She has had a sore throat for 2 days and wants a GP appointment to get antibiotics. Otherwise she feels well.',
@@ -48,6 +49,7 @@ export const scenarios: Scenario[] = [
       age: 66,
       description: 'Retired teacher, polite and matter-of-fact, does not want to waste anyone\'s time.',
     },
+    voice: 'coral',
     openingLine: "Good morning, is that the surgery? I'd like to book a routine appointment with the doctor, please.",
     presentingStory: 'She asks for a routine GP appointment about "something in my eye". She says no more than that unless asked.',
     hiddenFacts: [
@@ -81,6 +83,7 @@ export const scenarios: Scenario[] = [
       age: 74,
       description: 'Retired, lives alone, does not like to make a fuss.',
     },
+    voice: 'ballad',
     openingLine: "Oh hello, is that the surgery? I'm ringing about my prescription.",
     presentingStory:
       'He is chasing a repeat prescription for his angina spray. He mentions in passing that he has used a lot of it.',
@@ -110,6 +113,7 @@ export const scenarios: Scenario[] = [
       age: 26,
       description: 'Quiet, hesitant, finds phone calls hard. Long pauses, short answers.',
     },
+    voice: 'ballad',
     openingLine: 'Hi... um, is that the doctors? I just need to see someone.',
     presentingStory:
       'He says he "just needs to see someone" and at first will not say why. He deflects direct questions with "it\'s personal" or "I\'d rather not say".',

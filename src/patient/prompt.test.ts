@@ -23,7 +23,7 @@ describe('buildPatientPrompt', () => {
       });
       it('carries the fixed rules', () => {
         expect(p).toMatch(/Never say or hint that you are an AI, a simulation or part of training/);
-        expect(p).toMatch(/South Wales/);
+        expect(p).toMatch(/South Wales accent/);
         expect(p).toMatch(/Never tell the receptionist what they should do/);
       });
     });
