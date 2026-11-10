@@ -61,7 +61,7 @@ Checks: `npm test`, `npm run typecheck`, `npm run lint`.
 
 ## Deploying to Vercel
 
-Import the repository, set the environment variables above, and deploy. The build command (`npm run build`) applies database migrations and re-loads the scenarios before building, so the database always matches the code.
+Import the repository, set the environment variables above, and deploy. `vercel.json` runs the server functions in London (`lhr1`), next to the database. The build command (`npm run build`) applies database migrations and re-loads the scenarios before building, so the database always matches the code.
 
 ## Adding or changing a scenario
 
