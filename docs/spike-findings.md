@@ -21,4 +21,19 @@ Tested with `ai@7.0.169`, `@ai-sdk/react@4.0.173`, `@ai-sdk/gateway@4.0.142`, mo
 - **Low reasoning effort.** The installed SDK docs do not name a session option for it, so it is not set. Latency is already inside the target without it. If a key is found it can be supplied as JSON in `REALTIME_PROVIDER_OPTIONS`.
 - **Barge-in** (talking over the caller) was not tested.
 - **Scenarios 1, 2 and 4** have not been run by voice. Scenario 4 depends on tone, which synthetic speech cannot test.
-- **Debrief model.** The gateway key is on Vercel's free tier, which refuses the stronger text models (all Anthropic models tried returned "Free tier users do not have access"). Testing used `openai/gpt-5-mini`, which took 25 to 36 seconds per debrief and marked generously. A stronger model needs paid gateway credit.
+
+## Debrief model (updated after Anthropic models were enabled)
+
+Each model scored the same two scenario 3 transcripts (chest pain missed, and handled well).
+
+| Model | Missed call | Good call | Time per debrief |
+|---|---|---|---|
+| `openai/gpt-5-mini` | 43%, unsafe | 100% | 25 to 36 s |
+| `anthropic/claude-sonnet-5.5` | 29%, unsafe | 79% | 8 to 9 s |
+| `anthropic/claude-opus-5.5` | 29%, unsafe | 86% | 9 to 12 s |
+
+`anthropic/claude-sonnet-5.5` is now the debrief model. It is stricter than gpt-5-mini (which gave the good call full marks despite no safety-netting) and three to four times faster.
+
+- Both Anthropic models at first suggested advice outside the answer key ("stay seated", "don't drive yourself"). The debrief prompt now forbids improvements that are not in the rubric or answer key; in three re-runs none appeared.
+- Scores vary between runs. The same good call scored 79% and 86% on consecutive Sonnet runs, differing on whether "checks who is calling and for whom" was met. Treat a score as a guide, not a measurement.
+- This is two transcripts from one scenario.

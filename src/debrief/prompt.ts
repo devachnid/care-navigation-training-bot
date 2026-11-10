@@ -49,6 +49,7 @@ OUTCOME
 FEEDBACK
 Give two or three strengths and two or three specific improvements, written directly to the receptionist ("You asked...").
 Every strength and improvement must carry a quote copied exactly, word for word, from a single RECEPTIONIST or CALLER line in the transcript. Do not include the line number or speaker label in the quote. If the point is that something was not said, quote the line where it should have happened.
+Improvements must come only from the rubric and the answer key. Do not tell the receptionist to give the caller any advice that is not written in the answer key: no first aid, no advice about posture, rest, medication, driving or what to do while waiting. Where the rubric asks for "what to do if things get worse", the only improvement you may suggest is that the receptionist should have told the caller to call back or seek urgent help if they get worse. Do not suggest extra identity or address checks beyond the name and who the call is for.
 
 TRANSCRIPT
 ${formatTranscript(turns)}`;

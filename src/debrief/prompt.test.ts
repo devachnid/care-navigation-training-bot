@@ -30,6 +30,10 @@ describe('buildDebriefPrompt', () => {
     expect(p).toContain('Do not add your own clinical opinion');
     expect(p).toContain('you never role-play');
   });
+  it('keeps suggested improvements inside the answer key', () => {
+    expect(p).toContain('Improvements must come only from the rubric and the answer key');
+    expect(p).toContain('no first aid');
+  });
   it('treats a missed red flag as unsafe', () => {
     expect(p).toContain('or if the call ended without the red flag being acted on');
   });
