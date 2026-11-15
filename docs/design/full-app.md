@@ -158,6 +158,20 @@ The interface is plain and large, for reception desktops with a headset: British
 - At most 3 voice tokens per call (the first connection and two reconnections), and none more than 60 minutes after the call was created.
 - A failed debrief can be tried again twice.
 
+## 7a. Known limits of this version
+
+These come from one design choice inherited from the proof of concept: the trainee's browser holds the voice connection. Evidence is in `docs/engineering/voice-findings.md`. The fix for all three is the same piece of future work, relaying the voice connection through our own server, and it is the first thing to do if scores start to matter for anything beyond practice.
+
+1. **A score is only as trustworthy as the transcript, and the browser reports the transcript.** A trainee who wanted to could submit a transcript they wrote. Scores are for learning, not for assessment or appraisal, and a manager can always read the transcript behind a score. The server refuses transcripts that are implausibly long for the time the call was connected, and the assessor is given the transcript as data, but neither stops a determined cheat.
+2. **The caller's prompt, including the hidden facts, is visible in the trainee's browser** to someone who opens developer tools. The answer key is not.
+3. **The server cannot end a voice session.** It limits how many can be opened (3 per call, 25 calls a day per person). The 10-minute hang-up is done by the page. Set a monthly budget on the AI Gateway key so a misbehaving client cannot run up a bill.
+
+Smaller accepted trade-offs:
+
+- A manager who invites an email address can tell from the link whether that address already has an account on the service.
+- One-time links carry their token in the URL path, so an unused link is in the host's request logs. Links expire (7 days for invitations, 24 hours for resets) and work once.
+- Anyone can lock a known email address out of sign-in for 15 minutes at a time by guessing wrongly from several networks.
+
 ## 8. Code layout
 
 ```

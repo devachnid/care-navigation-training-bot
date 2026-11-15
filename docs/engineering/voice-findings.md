@@ -49,3 +49,21 @@ Each model scored the same two scenario 3 transcripts (chest pain missed, and ha
 - Both Anthropic models at first suggested advice outside the answer key ("stay seated", "don't drive yourself"). The debrief prompt now forbids improvements that are not in the rubric or answer key; in three re-runs none appeared.
 - Scores vary between runs. The same good call scored 79% and 86% on consecutive Sonnet runs, differing on whether "checks who is calling and for whom" was met. Treat a score as a guide, not a measurement.
 - This is two transcripts from one scenario.
+
+## Can the caller's instructions be set on the server? (15 November 2026)
+
+No, not with browser tokens through AI Gateway for `openai/gpt-realtime-2.1`. Three runs against the real gateway:
+
+| Run | Result |
+|---|---|
+| Token minted with no session config; browser sends none | Model answers as a generic assistant |
+| Token minted **with** the caller's instructions (`getToken({ sessionConfig })`); browser sends none | Still a generic assistant: the config given at mint is ignored |
+| Token minted with the caller's instructions; browser sends different instructions | The browser's instructions win |
+
+What follows from this, and stays true until the voice connection is relayed through our own server (`getServerWebSocketConfig`, which needs somewhere to run a long-lived WebSocket):
+
+- The caller's prompt, including the hidden facts, is sent to the trainee's browser. The answer key is not.
+- The transcript is reported by the browser. A trainee with developer tools could submit one they wrote.
+- The server cannot end a voice session. The 10-minute limit is enforced by the page, and the server only limits how many sessions can be opened (3 per call, 25 calls a day).
+
+These are recorded as known limits in `docs/design/full-app.md`. A spending cap on the gateway key is the real control on cost.
