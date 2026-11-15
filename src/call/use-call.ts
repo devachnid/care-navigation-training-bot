@@ -4,6 +4,7 @@ import { experimental_useRealtime as useRealtime } from '@ai-sdk/react';
 import { gateway } from 'ai';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { PatientSessionConfig } from '@/patient/session-config';
+import { callClock } from './limit';
 import { TranscriptAssembler } from './transcript';
 
 export type CallPhase = 'idle' | 'connecting' | 'listening' | 'speaking' | 'ending' | 'ended';
@@ -25,8 +26,14 @@ function roleOf(item: unknown): 'trainee' | 'patient' | null {
  * Runs one training call: microphone, voice connection, transcript capture and hang-up.
  * Audio goes straight between the browser and the voice model; only text is kept.
  */
-export function useCall(opts: { sessionId: string; modelId: string; sessionConfig: PatientSessionConfig }) {
-  const { sessionId, modelId, sessionConfig } = opts;
+export function useCall(opts: {
+  sessionId: string;
+  modelId: string;
+  sessionConfig: PatientSessionConfig;
+  /** The longest a call may run. Reaching it hangs up automatically; one minute before, `nearLimit` turns on. */
+  maxSeconds?: number;
+}) {
+  const { sessionId, modelId, sessionConfig, maxSeconds } = opts;
   // The hook restarts its session if these change identity, so keep them stable.
   const model = useMemo(() => gateway.experimental_realtime(modelId), [modelId]);
   const config = useMemo(() => sessionConfig, [sessionConfig]);
@@ -169,17 +176,42 @@ export function useCall(opts: { sessionId: string; modelId: string; sessionConfi
     }
   }, [stage, rt.status, rt, finish, failToConnect]);
 
-  // Call timer.
+  // The timer's callback runs later than the render that made it, so it reads the latest `finish` from a ref.
+  const finishRef = useRef(finish);
+  useEffect(() => {
+    finishRef.current = finish;
+  }, [finish]);
+
+  // Call timer. At the limit it hangs up by itself; `finish` ignores a second call, so a manual hang-up at the same moment is safe.
   useEffect(() => {
     if (!(stage === 'active' && connected)) return;
     const id = setInterval(() => {
-      if (startedAt.current) setElapsedSeconds(Math.floor((Date.now() - startedAt.current) / 1000));
+      if (!startedAt.current) return;
+      const seconds = (Date.now() - startedAt.current) / 1000;
+      setElapsedSeconds(Math.floor(seconds));
+      if (maxSeconds !== undefined && callClock(seconds, maxSeconds).expired) void finishRef.current(false);
     }, 500);
     return () => clearInterval(id);
-  }, [stage, connected]);
+  }, [stage, connected, maxSeconds]);
+
+  // `limit` is derived from the timer; the automatic hang-up itself happens in the timer below.
+  const limit = maxSeconds === undefined ? null : callClock(elapsedSeconds, maxSeconds);
 
   // Never leave the microphone open after leaving the page.
   useEffect(() => releaseMic, [releaseMic]);
 
-  return { phase, error, elapsedSeconds, result, start, hangUp: () => finish(false) };
+  return {
+    phase,
+    error,
+    elapsedSeconds,
+    result,
+    start,
+    hangUp: () => finish(false),
+    /** Seconds left before the automatic hang-up, or null when there is no limit. */
+    remainingSeconds: limit?.remainingSeconds ?? null,
+    /** One minute or less is left: show the warning. */
+    nearLimit: limit?.warn === true,
+    /** The call ended because it reached the limit (the timer stopped at or past it). */
+    endedAtLimit: limit?.expired === true && (phase === 'ending' || phase === 'ended'),
+  };
 }
