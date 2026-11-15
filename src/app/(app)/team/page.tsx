@@ -74,7 +74,7 @@ export default async function TeamPage() {
               header: 'Status',
               cell: r => (r.deactivatedAt ? <Tag tone="draft">Deactivated</Tag> : <Tag tone="approved">Active</Tag>),
             },
-            { key: 'calls', header: 'Calls taken', numeric: true, cell: r => (r.stats ?? NO_CALLS).calls },
+            { key: 'calls', header: 'Calls', numeric: true, cell: r => (r.stats ?? NO_CALLS).calls },
             {
               key: 'last',
               header: 'Last call',
@@ -90,7 +90,7 @@ export default async function TeamPage() {
             },
             {
               key: 'unsafe',
-              header: 'Unsafe outcomes',
+              header: 'Unsafe calls',
               numeric: true,
               cell: r => {
                 const n = (r.stats ?? NO_CALLS).unsafeOutcomes;
