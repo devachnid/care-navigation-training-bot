@@ -29,6 +29,13 @@
       "when": 1794779379019,
       "tag": "0003_secret_spot",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794781008840,
+      "tag": "0004_watery_talon",
+      "breakpoints": true
     }
   ]
 }

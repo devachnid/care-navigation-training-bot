@@ -43,6 +43,8 @@ describe('describeAudit', () => {
     ['scenario.activated', { subjectName: 'Sore throat' }, 'Switched on the scenario Sore throat'],
     ['scenario.deactivated', { subjectName: 'Sore throat' }, 'Switched off the scenario Sore throat'],
     ['scenario.approved', { subjectName: 'Sore throat' }, 'Approved the scenario Sore throat'],
+    ['transcripts.expired', { detail: { sessions: 3 } }, 'Deleted the transcripts and quoted lines of 3 calls, as the time the practice keeps them had passed'],
+    ['transcripts.expired', { detail: { sessions: 1 } }, 'Deleted the transcripts and quoted lines of 1 call, as the time the practice keeps them had passed'],
     ['scenario.added_from_library', { subjectName: 'Sore throat' }, 'Added the scenario Sore throat from the library'],
   ])('%s', (action, over, expected) => {
     expect(describeAudit(facts(action, over))).toBe(expected);

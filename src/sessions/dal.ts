@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, inArray, sql, type SQL } from 'drizzle-orm';
 import { z } from 'zod';
 import { getDb, queryRows } from '@/db/client';
-import { debriefs, practiceScenarios, sessions, transcriptTurns, users, type SessionStatus } from '@/db/schema';
+import { debriefs, practices, practiceScenarios, sessions, transcriptTurns, users, type SessionStatus } from '@/db/schema';
 import type { Actor, MemberActor } from '@/policy/actor';
 import { can } from '@/policy/can';
 import { assertMember, fail, isUuid, type Result } from '@/policy/result';
@@ -242,6 +242,10 @@ export type CallSession = {
   durationSeconds: number | null;
   /** How many more times a failed debrief can be tried again (0 once used up). */
   debriefRetriesLeft: number;
+  /** When the transcript was deleted under the practice's retention period; null while it is kept. */
+  transcriptDeletedAt: Date | null;
+  /** The practice's retention period now (null = kept); for the note shown once a transcript has been deleted. */
+  retentionDays: number | null;
 };
 
 /** A call the actor made, or any call in their practice for a manager. Null otherwise. */
@@ -260,9 +264,12 @@ export async function getSession(actor: Actor, sessionId: string): Promise<CallS
       endedAt: sessions.endedAt,
       durationSeconds: sessions.durationSeconds,
       debriefAttempts: sessions.debriefAttempts,
+      transcriptDeletedAt: sessions.transcriptDeletedAt,
+      retentionDays: practices.transcriptRetentionDays,
     })
     .from(sessions)
     .innerJoin(users, eq(users.id, sessions.userId))
+    .leftJoin(practices, eq(practices.id, sessions.practiceId))
     .where(and(eq(sessions.id, sessionId), viewableBy(actor)));
   if (!row || !row.userId || !row.scenario) return null;
   const { debriefAttempts, ...rest } = row;

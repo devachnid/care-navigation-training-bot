@@ -211,6 +211,8 @@ export const sessions = pgTable(
     tokenMints: integer('token_mints').notNull().default(0),
     /** Debrief runs started: the automatic one counts as 1; at most 2 retries after that. */
     debriefAttempts: integer('debrief_attempts').notNull().default(0),
+    /** When the transcript, quoted lines and flags were deleted under the practice's retention period; null while kept. */
+    transcriptDeletedAt: tz('transcript_deleted_at'),
   },
   t => [
     index('sessions_practice_started').on(t.practiceId, t.startedAt),

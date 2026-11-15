@@ -76,7 +76,7 @@ describe('startCall', () => {
     const { trainee, approved } = await setup();
     const id = await startedCall(trainee.actor, approved.id);
     const s = await getSession(trainee.actor, id);
-    expect(s).toMatchObject({ status: 'created', isOwn: true, practiceScenarioId: approved.id });
+    expect(s).toMatchObject({ status: 'created', isOwn: true, practiceScenarioId: approved.id, transcriptDeletedAt: null, retentionDays: null });
     expect(s!.scenario).toMatchObject({ practiceScenarioId: approved.id, libraryScenarioId: 'angina-repeat', revision: 1, approved: true });
     expect(s!.scenario.correctOutcome.length).toBeGreaterThan(0);
   });

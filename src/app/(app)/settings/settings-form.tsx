@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useState } from 'react';
 import { Alert, Checkbox, ErrorSummary, Field, SubmitButton } from '@/ui';
 import { initialFormState, summaryItems } from '@/app/_lib/form';
 import forms from '@/app/_lib/forms.module.css';
@@ -20,6 +20,7 @@ export type SettingsValues = { name: string; allowDraftScenarios: boolean; trans
 
 export function SettingsForm({ settings }: { settings: SettingsValues }) {
   const [state, action] = useActionState(saveSettingsAction, initialFormState);
+  const [picked, setPicked] = useState<string | null>(null);
   const e = state.errors ?? {};
   const v = state.values;
   const failedBefore = v !== undefined && !state.success;
@@ -28,6 +29,10 @@ export function SettingsForm({ settings }: { settings: SettingsValues }) {
   if (settings.transcriptRetentionDays !== null && !choices.some(c => c.days === settings.transcriptRetentionDays)) {
     choices.push({ days: settings.transcriptRetentionDays, label: `${settings.transcriptRetentionDays} days` });
   }
+  const chosen = picked ?? retention;
+  const saved = settings.transcriptRetentionDays;
+  // Choosing a shorter time than today's means older transcripts go at the next daily run.
+  const shortening = chosen !== '' && (saved === null || Number(chosen) < saved);
   return (
     <form action={action} noValidate className={forms.form}>
       <ErrorSummary errors={summaryItems(state, ORDER)} focusToken={state} />
@@ -51,8 +56,9 @@ export function SettingsForm({ settings }: { settings: SettingsValues }) {
         label="Keep transcripts for"
         name="retention"
         as="select"
-        hint="How long the written record of each call is kept. Automatic deletion takes effect once it has been switched on for the whole service, which has not happened yet. Until then transcripts are kept whatever you choose here, and your choice is saved ready for when it starts."
+        hint="Once a day, transcripts and the quoted lines in debriefs of calls older than this are deleted. Scores are kept. A deleted transcript cannot be brought back."
         defaultValue={retention}
+        onChange={event => setPicked(event.target.value)}
         error={e.retention}
         key={retention}
       >
@@ -62,6 +68,12 @@ export function SettingsForm({ settings }: { settings: SettingsValues }) {
           </option>
         ))}
       </Field>
+      {shortening && (
+        <Alert tone="warning" title="Older transcripts will be deleted" role="status">
+          Calls that ended more than {chosen} days ago will have their transcripts and quoted lines deleted at the next daily run after you
+          save. This cannot be undone.
+        </Alert>
+      )}
       <div className={forms.actions}>
         <SubmitButton pendingLabel="Saving…">Save settings</SubmitButton>
       </div>

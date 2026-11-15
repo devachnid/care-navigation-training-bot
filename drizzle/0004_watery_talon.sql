@@ -1,0 +1,1 @@
+ALTER TABLE "sessions" ADD COLUMN "transcript_deleted_at" timestamp with time zone;

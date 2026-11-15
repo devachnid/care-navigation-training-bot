@@ -82,6 +82,11 @@ export function describeAudit(e: AuditEntryFacts): string {
       return `Switched off the scenario ${subject}`;
     case 'scenario.approved':
       return `Approved the scenario ${subject}`;
+    case 'transcripts.expired': {
+      const n = e.detail?.sessions;
+      const calls = typeof n === 'number' ? (n === 1 ? '1 call' : `${n} calls`) : 'some calls';
+      return `Deleted the transcripts and quoted lines of ${calls}, as the time the practice keeps them had passed`;
+    }
     case 'scenario.added_from_library':
       return `Added the scenario ${subject} from the library`;
     default:
