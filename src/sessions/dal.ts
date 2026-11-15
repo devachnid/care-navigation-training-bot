@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, sql, type SQL } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNull, sql, type SQL } from 'drizzle-orm';
 import { z } from 'zod';
 import { getDb, queryRows } from '@/db/client';
 import { debriefs, practices, practiceScenarios, sessions, transcriptTurns, users, type SessionStatus } from '@/db/schema';
@@ -32,6 +32,14 @@ export const TOKEN_WINDOW_MINUTES = 60;
 export const MAX_DEBRIEF_ATTEMPTS = 3;
 /** Total characters of transcript accepted when a call ends. */
 export const MAX_TRANSCRIPT_CHARS = 60_000;
+/** Speech rate allowed when judging whether a transcript could have been said in the connected time. */
+export const TRANSCRIPT_CHARS_PER_SECOND = 30;
+/** Characters allowed on top of that (greetings, recognition padding). */
+export const TRANSCRIPT_CHAR_ALLOWANCE = 600;
+
+/** The most transcript characters a call connected for this many seconds (server time) could produce. */
+export const plausibleTranscriptChars = (connectedSeconds: number): number =>
+  Math.floor(Math.max(0, connectedSeconds) * TRANSCRIPT_CHARS_PER_SECOND) + TRANSCRIPT_CHAR_ALLOWANCE;
 
 /** Midnight at the start of `now`'s day in Europe/London, as an instant. */
 export function startOfLondonDay(now: Date): Date {
@@ -102,7 +110,7 @@ export async function startCall(actor: Actor, practiceScenarioId: string, now = 
 
 /**
  * Counts a voice token for the actor's own unfinished call (the first one moves it from `created`
- * to `in_call`) and returns the snapshot to build the caller from. One UPDATE does the check and
+ * to `in_call` and records `connected_at`, server time) and returns the snapshot to build the caller from. One UPDATE does the check and
  * the count, so at most 3 tokens are ever minted per call, and none once the call has ended or
  * more than 60 minutes after it was created.
  */
@@ -112,7 +120,11 @@ export async function claimForToken(actor: Actor, sessionId: string, now = new D
   const createdAfter = new Date(now.getTime() - TOKEN_WINDOW_MINUTES * 60_000);
   const [row] = await getDb()
     .update(sessions)
-    .set({ status: 'in_call', tokenMints: sql`${sessions.tokenMints} + 1` })
+    .set({
+      status: 'in_call',
+      tokenMints: sql`${sessions.tokenMints} + 1`,
+      connectedAt: sql`coalesce(${sessions.connectedAt}, ${now.toISOString()}::timestamptz)`,
+    })
     .where(
       and(
         eq(sessions.id, sessionId),
@@ -164,7 +176,12 @@ export type EndCallOutcome = {
  * voice token was minted) can go on to a debrief: ending a call still in `created` records it as
  * too short whatever the body says, and keeps no transcript. A call under 20 seconds, or where the
  * trainee never spoke, is recorded as a fail with a score of 0 and no debrief is run.
- * Audio is never stored.
+ *
+ * The browser reports the transcript, so it is checked against the server's own clock: a connected
+ * call whose transcript is longer than could have been said since it connected (30 characters a
+ * second plus 600) is refused with `invalid`, and nothing is saved. The stored duration is the
+ * server's connected time, capped by the browser's figure; the browser's figure is never used to
+ * allow more text. Audio is never stored.
  */
 export async function endCall(actor: Actor, sessionId: string, body: unknown, now = new Date()): Promise<Result<EndCallOutcome>> {
   assertMember(actor, 'calls.take');
@@ -175,16 +192,22 @@ export async function endCall(actor: Actor, sessionId: string, body: unknown, no
   const db = getDb();
 
   const [current] = await db
-    .select({ status: sessions.status, startedAt: sessions.startedAt })
+    .select({ status: sessions.status, startedAt: sessions.startedAt, connectedAt: sessions.connectedAt })
     .from(sessions)
     .where(and(eq(sessions.id, sessionId), ownedBy(actor)));
   if (!current) return fail('not_found', NOT_FOUND);
 
-  // The browser's clock is not trusted beyond the time the session has existed.
-  const sinceStart = Math.max(0, (now.getTime() - current.startedAt.getTime()) / 1000);
   if (current.status !== 'created' && current.status !== 'in_call') return { ok: true, status: current.status, needsDebrief: false };
   const connected = current.status === 'in_call';
-  const durationSeconds = connected ? Math.round(Math.min(parsed.data.durationSeconds, sinceStart)) : 0;
+  // Server time since the voice connection opened (calls connected before connected_at existed: since creation).
+  const connectedSeconds = Math.max(0, (now.getTime() - (current.connectedAt ?? current.startedAt).getTime()) / 1000);
+  if (connected) {
+    const chars = turns.reduce((n, t) => n + t.text.length, 0);
+    if (chars > plausibleTranscriptChars(connectedSeconds)) {
+      return fail('invalid', 'The call could not be saved because the transcript is longer than could have been said in the time the call was connected.');
+    }
+  }
+  const durationSeconds = connected ? Math.round(Math.min(parsed.data.durationSeconds, connectedSeconds)) : 0;
   const tooShort = !connected || durationSeconds < MIN_CALL_SECONDS || !turns.some(t => t.speaker === 'trainee');
   const status: SessionStatus = tooShort ? 'too_short' : 'debriefing';
 
@@ -434,6 +457,8 @@ export async function claimDebriefRetry(actor: Actor, sessionId: string): Promis
         ownedBy(actor),
         eq(sessions.status, 'failed'),
         sql`${sessions.debriefAttempts} < ${MAX_DEBRIEF_ATTEMPTS}`,
+        // Nothing to assess once the transcript has been deleted under the retention period.
+        isNull(sessions.transcriptDeletedAt),
       ),
     )
     .returning({ id: sessions.id });

@@ -209,6 +209,8 @@ export const sessions = pgTable(
     status: text('status').$type<SessionStatus>().notNull().default('created'),
     /** Voice tokens minted for this call (at most 3). */
     tokenMints: integer('token_mints').notNull().default(0),
+    /** Server time of the first voice token: when the call connected. The transcript length is judged against time since then. */
+    connectedAt: tz('connected_at'),
     /** Debrief runs started: the automatic one counts as 1; at most 2 retries after that. */
     debriefAttempts: integer('debrief_attempts').notNull().default(0),
     /** When the transcript, quoted lines and flags were deleted under the practice's retention period; null while kept. */
