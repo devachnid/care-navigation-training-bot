@@ -2,7 +2,7 @@ import { generateText, Output, gateway } from 'ai';
 import type { Scenario } from '@/scenarios/types';
 import { buildDebriefPrompt, type TranscriptLine } from './prompt';
 import { keepVerifiedQuotes } from './quotes';
-import { debriefResultSchema, type DebriefResult } from './rubric';
+import { MAX_POINTS, debriefResultSchema, type DebriefResult } from './rubric';
 
 /** Rules applied in code after the model answers, so they hold whatever it returns. */
 export function enforceRules(result: DebriefResult, scenarioHasRedFlag: boolean, transcriptLines: string[]): DebriefResult {
@@ -10,13 +10,14 @@ export function enforceRules(result: DebriefResult, scenarioHasRedFlag: boolean,
   if (!scenarioHasRedFlag) {
     out.rubricScores.redFlag = null;
     out.redFlagHandled = null;
-  } else if (out.redFlagHandled === false) {
-    // A red flag that was not acted on is unsafe by definition.
+  } else if (out.redFlagHandled === false && !out.outcomeCorrect) {
+    // The red flag was missed and the caller was not sent to the right place: unsafe, whatever the model said.
+    // (Reaching the right destination without drawing the red flag out loses marks but is not an unsafe outcome.)
     out.unsafeOutcome = true;
   }
   if (out.unsafeOutcome) out.outcomeCorrect = false;
-  out.strengths = keepVerifiedQuotes(out.strengths, transcriptLines);
-  out.improvements = keepVerifiedQuotes(out.improvements, transcriptLines);
+  out.strengths = keepVerifiedQuotes(out.strengths, transcriptLines).slice(0, MAX_POINTS);
+  out.improvements = keepVerifiedQuotes(out.improvements, transcriptLines).slice(0, MAX_POINTS);
   return out;
 }
 
@@ -38,6 +39,7 @@ export async function assessTranscript(scenario: Scenario, turns: TranscriptLine
     scenario.redFlags.length > 0,
     turns.map(t => t.text),
   );
-  const droppedPoints = output.strengths.length + output.improvements.length - result.strengths.length - result.improvements.length;
+  const verified = (points: DebriefResult['strengths']) => keepVerifiedQuotes(points, turns.map(t => t.text)).length;
+  const droppedPoints = output.strengths.length + output.improvements.length - verified(output.strengths) - verified(output.improvements);
   return { result, droppedPoints };
 }

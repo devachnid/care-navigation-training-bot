@@ -104,14 +104,20 @@ export const rubricScoresSchema = z.object({
   manner: item,
 });
 
+/** How many strengths, and how many improvements, a debrief shows. */
+export const MAX_POINTS = 3;
+const MAX_POINTS_ACCEPTED = 8;
+
 /** What the debrief model must return. */
 export const debriefResultSchema = z.object({
   rubricScores: rubricScoresSchema,
   outcomeCorrect: z.boolean(),
   unsafeOutcome: z.boolean(),
   redFlagHandled: z.boolean().nullable().describe('null when the scenario has no red flag.'),
-  strengths: z.array(point).min(2).max(3),
-  improvements: z.array(point).min(2).max(3),
+  // Asked for two or three of each. The model occasionally returns four, or one: accept up to
+  // MAX_POINTS_ACCEPTED so that does not fail the whole debrief, and keep the first MAX_POINTS in code.
+  strengths: z.array(point).max(MAX_POINTS_ACCEPTED),
+  improvements: z.array(point).max(MAX_POINTS_ACCEPTED),
 });
 
 export type RubricScores = z.infer<typeof rubricScoresSchema>;
