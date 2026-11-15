@@ -1,8 +1,9 @@
-import { desc, eq } from 'drizzle-orm';
 import Link from 'next/link';
-import { requireTrainee } from '@/access/require';
-import { getDb } from '@/db/client';
-import { debriefs, scenarios, sessions, type SessionStatus } from '@/db/schema';
+import { redirect } from 'next/navigation';
+import { requireActor } from '@/auth/current';
+import type { SessionStatus } from '@/db/schema';
+import { can } from '@/policy/can';
+import { listOwnSessions } from '@/sessions/dal';
 
 const STATUS: Record<SessionStatus, string> = {
   created: 'Not started',
@@ -17,28 +18,14 @@ const when = new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeStyle: 
 const clock = (s: number | null) => (s === null ? '–' : `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`);
 
 export default async function HistoryPage() {
-  const name = await requireTrainee();
-  const rows = await getDb()
-    .select({
-      id: sessions.id,
-      startedAt: sessions.startedAt,
-      durationSeconds: sessions.durationSeconds,
-      status: sessions.status,
-      title: scenarios.title,
-      score: debriefs.overallScore,
-      unsafe: debriefs.unsafeOutcome,
-    })
-    .from(sessions)
-    .innerJoin(scenarios, eq(sessions.scenarioId, scenarios.id))
-    .leftJoin(debriefs, eq(debriefs.sessionId, sessions.id))
-    .where(eq(sessions.traineeName, name))
-    .orderBy(desc(sessions.startedAt))
-    .limit(200);
+  const actor = await requireActor();
+  if (!can(actor, 'sessions.viewOwn')) redirect('/');
+  const rows = await listOwnSessions(actor);
 
   return (
     <main>
       <h1>My past calls</h1>
-      <p className="lead">Calls made under the name {name}.</p>
+      <p className="lead">Your calls at {actor.membership?.practiceName}.</p>
       {rows.length === 0 ? (
         <p>No calls yet.</p>
       ) : (

@@ -1,39 +1,20 @@
-import { asc, eq } from 'drizzle-orm';
 import Link from 'next/link';
-import { currentTrainee } from '@/access/require';
-import { getDb } from '@/db/client';
-import { scenarios } from '@/db/schema';
+import { requireActor } from '@/auth/current';
+import { can } from '@/policy/can';
+import { listVisibleScenarios } from '@/scenarios/practice-dal';
 import { signOut, startSession } from './actions';
-import { EnterForm } from './enter-form';
 
-
-const ORDER = { easy: 0, medium: 1, hard: 2 } as const;
-
+// Interim page: the next engineer replaces it (design section 6).
 export default async function Home() {
-  const name = await currentTrainee();
-  if (!name) {
-    return (
-      <main>
-        <h1>Care navigation call practice</h1>
-        <p className="lead">Practise taking calls with a simulated caller, then see how the call went.</p>
-        <EnterForm />
-      </main>
-    );
-  }
-
-  const list = (
-    await getDb()
-      .select({ id: scenarios.id, title: scenarios.title, difficulty: scenarios.difficulty })
-      .from(scenarios)
-      .where(eq(scenarios.active, true))
-      .orderBy(asc(scenarios.title))
-  ).sort((a, b) => ORDER[a.difficulty] - ORDER[b.difficulty]);
+  const actor = await requireActor();
+  const list = can(actor, 'calls.take') ? await listVisibleScenarios(actor) : [];
 
   return (
     <main>
       <header className="topbar">
         <span>
-          Signed in as <strong>{name}</strong>
+          Signed in as <strong>{actor.name}</strong>
+          {actor.membership && <> at {actor.membership.practiceName}</>}
         </span>
         <nav>
           <Link href="/history">My past calls</Link>
@@ -43,20 +24,26 @@ export default async function Home() {
         </nav>
       </header>
       <h1>Choose a call</h1>
-      <p className="lead">The caller is simulated. No real patient information is used, and you should not use any.</p>
-      <ul className="scenarios">
-        {list.map(s => (
-          <li key={s.id}>
-            <form action={startSession}>
-              <input type="hidden" name="scenarioId" value={s.id} />
-              <button className="scenario">
-                <span className="scenario-title">{s.title}</span>
-                <span className={`tag tag-${s.difficulty}`}>{s.difficulty}</span>
-              </button>
-            </form>
-          </li>
-        ))}
-      </ul>
+      {!actor.membership ? (
+        <p className="notice">You are not a member of a practice at the moment. Ask your practice manager.</p>
+      ) : (
+        <>
+          <p className="lead">The caller is simulated. No real patient information is used, and you should not use any.</p>
+          <ul className="scenarios">
+            {list.map(s => (
+              <li key={s.id}>
+                <form action={startSession}>
+                  <input type="hidden" name="scenarioId" value={s.id} />
+                  <button className="scenario">
+                    <span className="scenario-title">{s.title}</span>
+                    <span className={`tag tag-${s.difficulty}`}>{s.difficulty}</span>
+                  </button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </main>
   );
 }

@@ -1,9 +1,10 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { requireTrainee } from '@/access/require';
+import { requireActor } from '@/auth/current';
 import { retryDebrief } from '@/app/actions';
 import { RUBRIC, type QuotedPoint } from '@/debrief/rubric';
-import { getDebrief, getOwnedSession, getTurns } from '@/sessions/queries';
+import { can } from '@/policy/can';
+import { getDebrief, getSession, getTurns } from '@/sessions/dal';
 
 function Points({ title, points }: { title: string; points: QuotedPoint[] }) {
   if (points.length === 0) return null;
@@ -23,20 +24,21 @@ function Points({ title, points }: { title: string; points: QuotedPoint[] }) {
 }
 
 export default async function DebriefPage({ params }: { params: Promise<{ sessionId: string }> }) {
-  const name = await requireTrainee();
+  const actor = await requireActor();
+  if (!can(actor, 'sessions.viewOwn')) notFound();
   const { sessionId } = await params;
-  const owned = await getOwnedSession(sessionId, name);
-  if (!owned) notFound();
-  const { session, scenario } = owned;
-  const [debrief, turns] = await Promise.all([getDebrief(sessionId), getTurns(sessionId)]);
+  const session = await getSession(actor, sessionId);
+  if (!session) notFound();
+  const scenario = session.scenario;
+  const [debrief, turns] = await Promise.all([getDebrief(actor, sessionId), getTurns(actor, sessionId).then(t => t ?? [])]);
 
   return (
     <main>
       <p className="eyebrow">Debrief</p>
       <h1>{scenario.title}</h1>
 
-      {!scenario.clinicianApproved && (
-        <p className="notice">Draft scenario. The answer key has not yet been checked by a GP against practice protocols.</p>
+      {!scenario.approved && (
+        <p className="notice">Draft scenario. The answer key had not been approved by your practice when this call was made.</p>
       )}
 
       {session.status === 'too_short' && (
@@ -47,7 +49,7 @@ export default async function DebriefPage({ params }: { params: Promise<{ sessio
         </>
       )}
 
-      {session.status === 'failed' && (
+      {session.status === 'failed' && session.isOwn && (
         <>
           <p className="alert" role="alert">
             The debrief could not be produced. Your transcript is saved below.
