@@ -99,6 +99,13 @@ describe('signIn', () => {
     expect(await verifyPassword(PASSWORD, after.passwordHash)).toBe(true);
   });
 
+  it('a whole practice can sign in from one public IP: 40 successes for 40 accounts all succeed', async () => {
+    const accounts = await Promise.all(Array.from({ length: 40 }, () => makeUser()));
+    for (const u of accounts) expect((await signIn({ email: u.email, password: PASSWORD, ip: '203.0.113.50' })).ok).toBe(true);
+    // Repeated sign-ins of one person do not use up their email backstop either.
+    for (let i = 0; i < 12; i++) expect((await signIn({ email: accounts[0].email, password: PASSWORD, ip: '203.0.113.50' })).ok).toBe(true);
+  });
+
   it('signs in a user with no membership (platform admin) with no practice', async () => {
     const u = await makeUser({ isPlatformAdmin: true });
     const r = await signIn({ email: u.email, password: PASSWORD, ip: null });
@@ -117,6 +124,34 @@ describe('signOut', () => {
 });
 
 describe('changePassword', () => {
+  it('a correct current password does not use up any allowance', async () => {
+    const { practiceId } = await makePractice();
+    const t = await addMember(practiceId, 'trainee');
+    let current = PASSWORD;
+    for (let i = 0; i < 12; i++) {
+      const next = `kettle on the hob ${i}`;
+      expect(await changePassword(t.actor, { currentPassword: current, newPassword: next, sessionToken: t.token, ip: '203.0.113.60' })).toEqual({ ok: true });
+      current = next;
+    }
+    expect((await signIn({ email: t.user.email, password: current, ip: '203.0.113.60' })).ok).toBe(true);
+  });
+
+  // Security review round 2, R5: guesses at the current password are limited like sign-in.
+  it('counts each attempt before checking the current password, and refuses over the limit', async () => {
+    const { practiceId } = await makePractice();
+    const t = await addMember(practiceId, 'trainee');
+    const codes = new Set<string>();
+    for (let i = 0; i < 40; i++) {
+      const r = await changePassword(t.actor, { currentPassword: `guess number ${i} x`, newPassword: 'irrelevant new pass 1', sessionToken: t.token, ip: '192.0.2.77' });
+      codes.add(r.ok ? 'ok' : r.code);
+    }
+    const r = await changePassword(t.actor, { currentPassword: PASSWORD, newPassword: 'a brand new password 9', sessionToken: t.token, ip: '192.0.2.77' });
+    expect({ codes: [...codes], correctAfter40: r.ok }).toEqual({ codes: ['invalid', 'limit'], correctAfter40: false });
+    // It is the same counter as sign-in for that email and address.
+    expect(await signIn({ email: t.user.email, password: PASSWORD, ip: '192.0.2.77' })).toMatchObject({ ok: false, code: 'limit' });
+    expect((await signIn({ email: t.user.email, password: PASSWORD, ip: '198.51.100.3' })).ok).toBe(true);
+  });
+
   it('needs the current password and the policy, then signs out other sessions only', async () => {
     const { practiceId } = await makePractice();
     const t = await addMember(practiceId, 'trainee');

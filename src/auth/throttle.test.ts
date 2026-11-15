@@ -6,9 +6,9 @@ import {
   PAIR_LIMIT,
   SETUP_LIMIT,
   THROTTLE_WINDOW_MS,
-  clearSignInAttempts,
   countSetupAttempt,
   countSignInAttempt,
+  recordSuccessfulSignIn,
 } from './throttle';
 
 beforeAll(async () => {
@@ -61,8 +61,37 @@ describe('sign-in throttle (counted before the password is checked)', () => {
 
   it('clearing after a successful sign-in resets the email and IP pair only', async () => {
     await attempts(PAIR_LIMIT, () => 'clear@example.com', () => '198.51.100.1');
-    await clearSignInAttempts('clear@example.com', '198.51.100.1');
+    await recordSuccessfulSignIn('clear@example.com', '198.51.100.1');
     expect(await countSignInAttempt('clear@example.com', '198.51.100.1', at(10))).toBe(true);
+  });
+});
+
+describe('successes give their attempt back on the email and IP keys', () => {
+  it('40 successful sign-ins from one IP for 40 different accounts are all allowed', async () => {
+    const ip = '203.0.113.200';
+    for (let i = 0; i < 40; i++) {
+      const email = `shift${i}@example.com`;
+      expect(await countSignInAttempt(email, ip, at(i))).toBe(true);
+      await recordSuccessfulSignIn(email, ip);
+    }
+  });
+
+  it('30 failures from one IP still block the 31st, and a success in between does not reset them', async () => {
+    const ip = '203.0.113.201';
+    for (let i = 0; i < IP_LIMIT - 1; i++) expect(await countSignInAttempt(`fail${i}@example.com`, ip, at(i))).toBe(true);
+    // Someone else signs in correctly from the same address: their own attempt is given back, nothing more.
+    expect(await countSignInAttempt('good@example.com', ip, at(100))).toBe(true);
+    await recordSuccessfulSignIn('good@example.com', ip);
+    expect(await countSignInAttempt('fail-last@example.com', ip, at(101))).toBe(true); // 30th failure
+    expect(await countSignInAttempt('one-more@example.com', ip, at(102))).toBe(false); // 31st
+  });
+
+  it('never takes a count below zero', async () => {
+    await recordSuccessfulSignIn('nobody-yet@example.com', '203.0.113.202');
+    await recordSuccessfulSignIn('nobody-yet@example.com', '203.0.113.202');
+    const allowed = [];
+    for (let i = 0; i < IP_LIMIT + 1; i++) allowed.push(await countSignInAttempt(`n${i}@example.com`, '203.0.113.202', at(i)));
+    expect(allowed.filter(Boolean)).toHaveLength(IP_LIMIT);
   });
 });
 

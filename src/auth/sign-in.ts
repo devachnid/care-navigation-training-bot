@@ -7,7 +7,7 @@ import { fail, type Result } from '@/policy/result';
 import { normaliseEmail } from './email';
 import { checkPasswordPolicy, hashPassword, needsRehash, verifyAgainstNothing, verifyPassword } from './password';
 import { createSession, defaultPracticeFor, deleteSession, deleteUserSessions, type NewSession } from './sessions';
-import { clearSignInAttempts, countSignInAttempt } from './throttle';
+import { recordSuccessfulSignIn, countSignInAttempt } from './throttle';
 
 /** The one message for unknown email, wrong password, disabled account and too many attempts. */
 export const SIGN_IN_FAILED =
@@ -34,7 +34,7 @@ export async function checkCredentials(rawEmail: string, password: string, ip: s
   const ok = user?.passwordHash ? await verifyPassword(password, user.passwordHash) : await verifyAgainstNothing(password);
   if (!user || !user.passwordHash || !ok || user.disabledAt) return { ok: false, code: 'invalid' };
 
-  await clearSignInAttempts(email, ip);
+  await recordSuccessfulSignIn(email, ip);
   if (needsRehash(user.passwordHash)) {
     // Only if the hash has not been changed meanwhile (e.g. a password reset).
     await getDb()
@@ -68,16 +68,22 @@ export async function signOut(token: string | null | undefined): Promise<void> {
  */
 export async function changePassword(
   actor: Actor,
-  input: { currentPassword: string; newPassword: string; sessionToken: string | null },
+  input: { currentPassword: string; newPassword: string; sessionToken: string | null; ip?: string | null },
 ): Promise<Result> {
   const [user] = await getDb()
     .select({ passwordHash: users.passwordHash, email: users.email })
     .from(users)
     .where(eq(users.id, actor.userId));
   if (!user) return fail('not_found', 'Your account could not be found. Sign out and sign in again.');
-  if (!(await verifyPassword(input.currentPassword, user.passwordHash))) {
-    return fail('invalid', 'Your current password is not right. Check it and try again.');
+  // Counted against the same limits as sign-in, before the current password is checked.
+  const ip = input.ip ?? null;
+  if (!(await countSignInAttempt(user.email, ip))) {
+    return fail('limit', 'Too many tries. Wait 15 minutes, then try again.');
   }
+  if (!(await verifyPassword(input.currentPassword, user.passwordHash))) {
+    return fail('invalid', 'Your current password is not right. Check it and try again. After several tries you will need to wait 15 minutes.');
+  }
+  await recordSuccessfulSignIn(user.email, ip);
   const problem = checkPasswordPolicy(input.newPassword, user.email);
   if (problem) return fail('invalid', problem);
 

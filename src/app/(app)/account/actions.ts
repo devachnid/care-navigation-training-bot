@@ -6,6 +6,7 @@ import { readSessionToken } from '@/auth/next-cookies';
 import { changePassword } from '@/auth/sign-in';
 import { switchPractice } from '@/practices/dal';
 import { text, type FormState } from '@/app/_lib/form';
+import { clientIp } from '@/app/_lib/request';
 
 /** Any signed-in person (a platform admin with no practice included) may change their own password. */
 export async function changePasswordAction(_prev: FormState, formData: FormData): Promise<FormState> {
@@ -19,7 +20,7 @@ export async function changePasswordAction(_prev: FormState, formData: FormData)
   else if (next !== text(formData, 'confirmPassword')) errors.confirmPassword = 'The two new passwords are not the same.';
   if (Object.keys(errors).length > 0) return { errors };
 
-  const result = await changePassword(actor, { currentPassword: current, newPassword: next, sessionToken: await readSessionToken() });
+  const result = await changePassword(actor, { currentPassword: current, newPassword: next, sessionToken: await readSessionToken(), ip: await clientIp() });
   if (!result.ok) return { message: result.error };
   return { success: true, message: 'Your password has been changed. You have been signed out everywhere else.' };
 }

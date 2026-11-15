@@ -1,4 +1,4 @@
-import { eq, lt, sql } from 'drizzle-orm';
+import { eq, inArray, lt, sql } from 'drizzle-orm';
 import { getDb } from '@/db/client';
 import { authThrottle } from '@/db/schema';
 
@@ -60,9 +60,20 @@ export async function countSignInAttempt(email: string, ip: string | null, now =
   return countAttempt(signInKeys(email, ip), now);
 }
 
-/** After a successful sign-in the email-and-IP count starts again. The email backstop and IP counts do not. */
-export async function clearSignInAttempts(email: string, ip: string | null): Promise<void> {
-  await getDb().delete(authThrottle).where(eq(authThrottle.key, pairKey(email, ip)));
+/**
+ * After a correct password (sign-in, joining with an existing account, changing a password): the
+ * email-and-IP count starts again, and the attempt is given back on the per-email and per-IP keys
+ * (one atomic decrement each, never below zero). So only failures build up there, and a whole
+ * practice signing in from one public IP at the start of a shift does not lock itself out.
+ */
+export async function recordSuccessfulSignIn(email: string, ip: string | null): Promise<void> {
+  const db = getDb();
+  await db.delete(authThrottle).where(eq(authThrottle.key, pairKey(email, ip)));
+  const keys = ip ? [`email:${email}`, `ip:${ip}`] : [`email:${email}`];
+  await db
+    .update(authThrottle)
+    .set({ count: sql`greatest(${authThrottle.count} - 1, 0)` })
+    .where(inArray(authThrottle.key, keys));
 }
 
 /** Call before checking a setup code. False means refuse. */
