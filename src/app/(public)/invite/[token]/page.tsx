@@ -36,6 +36,27 @@ export default async function InvitePage({ params }: { params: Promise<{ token: 
     );
   }
 
+  if (details.existingAccount) {
+    return (
+      <>
+        <PageHeader
+          eyebrow={details.practiceName}
+          title={`Join ${details.practiceName ?? 'the practice'}`}
+          lead={`You already have an account for ${details.email}. Enter your password to join ${details.practiceName ?? 'the practice'}.`}
+        />
+        <InviteForm
+          token={token}
+          kind="invite"
+          name={details.name}
+          email={details.email}
+          practiceName={details.practiceName}
+          needsPrivacyAck={details.needsPrivacyAck}
+          existingAccount
+        />
+      </>
+    );
+  }
+
   return (
     <>
       <PageHeader

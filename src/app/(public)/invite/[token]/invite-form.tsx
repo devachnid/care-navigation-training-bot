@@ -16,9 +16,11 @@ type Props = {
   email: string;
   practiceName: string | null;
   needsPrivacyAck: boolean;
+  /** Invite only: the email already has an account, so ask for its current password instead of a new one. */
+  existingAccount?: boolean;
 };
 
-export function InviteForm({ token, kind, name, email, practiceName, needsPrivacyAck }: Props) {
+export function InviteForm({ token, kind, name, email, practiceName, needsPrivacyAck, existingAccount = false }: Props) {
   const [state, action] = useActionState(acceptInvitationAction, initialFormState);
   const e = state.errors ?? {};
   return (
@@ -27,27 +29,43 @@ export function InviteForm({ token, kind, name, email, practiceName, needsPrivac
       <input type="hidden" name="token" value={token} />
       {kind === 'invite' && (
         <>
-          <Field label="Name" name="displayName" value={name} readOnly hint="Your manager entered this. Ask them if it is wrong." />
+          {!existingAccount && (
+            <Field label="Name" name="displayName" value={name} readOnly hint="Your manager entered this. Ask them if it is wrong." />
+          )}
           <Field label="Email address" name="displayEmail" value={email} readOnly autoComplete="username" />
         </>
       )}
-      <Field
-        label={kind === 'invite' ? 'Choose a password' : 'New password'}
-        name="password"
-        type="password"
-        hint="At least 12 characters. Do not use your email address or an obvious word."
-        autoComplete="new-password"
-        error={e.password}
-        required
-      />
-      <Field
-        label="Confirm password"
-        name="confirmPassword"
-        type="password"
-        autoComplete="new-password"
-        error={e.confirmPassword}
-        required
-      />
+      {existingAccount ? (
+        <Field
+          label="Your password"
+          name="password"
+          type="password"
+          hint="The password you already use to sign in. It will not change."
+          autoComplete="current-password"
+          error={e.password}
+          required
+        />
+      ) : (
+        <>
+          <Field
+            label={kind === 'invite' ? 'Choose a password' : 'New password'}
+            name="password"
+            type="password"
+            hint="At least 12 characters. Do not use your email address or an obvious word."
+            autoComplete="new-password"
+            error={e.password}
+            required
+          />
+          <Field
+            label="Confirm password"
+            name="confirmPassword"
+            type="password"
+            autoComplete="new-password"
+            error={e.confirmPassword}
+            required
+          />
+        </>
+      )}
       {needsPrivacyAck && (
         <>
           {kind === 'invite' && practiceName && (
@@ -61,7 +79,7 @@ export function InviteForm({ token, kind, name, email, practiceName, needsPrivac
       )}
       <div className={forms.actions}>
         <SubmitButton size="large" pendingLabel="Saving…">
-          {kind === 'invite' ? 'Create my account' : 'Save new password'}
+          {kind === 'reset' ? 'Save new password' : existingAccount ? `Join ${practiceName ?? 'the practice'}` : 'Create my account'}
         </SubmitButton>
       </div>
     </form>

@@ -4,7 +4,8 @@ import { getDb } from '@/db/client';
 import { auditLog, invitations, memberships, users } from '@/db/schema';
 import { ForbiddenError } from '@/policy/result';
 import { createTestDb } from '@/test/db';
-import { PASSWORD, addMember, makePractice, makeUser, platformAdmin, seedLibrary } from '@/test/fixtures';
+import { listMembers, reactivateMember } from '@/practices/dal';
+import { PASSWORD, addMember, deactivate, makePractice, makeUser, platformAdmin, seedLibrary } from '@/test/fixtures';
 import {
   acceptInvitation,
   createInvitation,
@@ -17,8 +18,9 @@ import {
   revokeInvitation,
   type InvitationLink,
 } from './invitations';
-import { createSession, loadActor } from './sessions';
+import { createSession, loadActor, setActivePractice } from './sessions';
 import { signIn } from './sign-in';
+import { PAIR_LIMIT } from './throttle';
 import { hashToken } from './tokens';
 
 beforeAll(async () => {
@@ -27,12 +29,13 @@ beforeAll(async () => {
 });
 
 const NEW_PASSWORD = 'bara brith and tea';
+const ATTACKER_PW = 'attacker owns this account now';
 let n = 0;
 const fresh = () => `new-person-${++n}@example.com`;
 
 async function invite(manager: Awaited<ReturnType<typeof makePractice>>['manager'], over: Partial<Parameters<typeof createInvitation>[1]> = {}) {
   const r = await createInvitation(manager.actor, { email: fresh(), name: 'Nia Evans', role: 'trainee', canApproveScenarios: false, ...over });
-  if (!r.ok || r.added) throw new Error('expected a link');
+  if (!r.ok) throw new Error(r.error);
   return r;
 }
 
@@ -106,23 +109,101 @@ describe('invitations', () => {
     expect(await lookupInvitation(link.token)).not.toBeNull();
   });
 
-  it('adds an existing account straight away, with no link', async () => {
+  it('never adds an existing account straight away: it always makes a link, and says nothing about other practices', async () => {
     const p1 = await makePractice();
     const p2 = await makePractice();
     const existing = await addMember(p1.practiceId, 'trainee');
     const r = await createInvitation(p2.manager.actor, { email: existing.user.email.toUpperCase(), name: 'Whoever', role: 'trainee', canApproveScenarios: false });
-    expect(r).toEqual({ ok: true, added: true, userId: existing.user.id });
-    const again = await createInvitation(p2.manager.actor, { email: existing.user.email, name: 'Whoever', role: 'trainee', canApproveScenarios: false });
-    expect(again).toMatchObject({ ok: false, code: 'conflict' });
+    expect(r.ok).toBe(true);
+    expect(Object.keys(r).sort()).toEqual(['expiresAt', 'invitationId', 'ok', 'token']);
+    expect((await listMembers(p2.manager.actor)).map(m => m.userId)).not.toContain(existing.user.id);
+    // The answer for a brand-new email has exactly the same shape.
+    const fresh1 = await createInvitation(p2.manager.actor, { email: fresh(), name: 'New', role: 'trainee', canApproveScenarios: false });
+    expect(Object.keys(fresh1).sort()).toEqual(['expiresAt', 'invitationId', 'ok', 'token']);
   });
 
-  it('will not set a password on an account that already has one', async () => {
-    const { manager } = await makePractice();
-    const email = fresh();
-    const link = await invite(manager, { email });
-    await makeUser({ email });
-    expect(await acceptInvitation({ token: link.token, password: NEW_PASSWORD, privacyAccepted: true })).toMatchObject({ ok: false, code: 'conflict' });
-    expect((await signIn({ email, password: PASSWORD, ip: null })).ok).toBe(true);
+  it('refuses to invite someone already in the practice (active or deactivated)', async () => {
+    const { practiceId, manager } = await makePractice();
+    const t = await addMember(practiceId, 'trainee');
+    expect(await createInvitation(manager.actor, { email: t.user.email, name: 'X', role: 'trainee', canApproveScenarios: false })).toMatchObject({ ok: false, code: 'conflict' });
+    await getDb().update(memberships).set({ deactivatedAt: new Date() }).where(eq(memberships.userId, t.user.id));
+    const r = await createInvitation(manager.actor, { email: t.user.email, name: 'X', role: 'trainee', canApproveScenarios: false });
+    expect(r.ok === false && r.error).toMatch(/Reactivate/);
+  });
+
+  it('an existing account joins with its current password, which is never changed; a wrong password does not use up the link', async () => {
+    const p1 = await makePractice();
+    const p2 = await makePractice('Joining Practice');
+    const existing = await addMember(p1.practiceId, 'trainee');
+    const link = await invite(p2.manager, { email: existing.user.email, role: 'manager', canApproveScenarios: true });
+    expect(await lookupInvitation(link.token)).toMatchObject({ kind: 'invite', existingAccount: true, practiceName: 'Joining Practice', needsPrivacyAck: true });
+
+    expect(await acceptInvitation({ token: link.token, password: NEW_PASSWORD, privacyAccepted: true })).toMatchObject({ ok: false, code: 'invalid' });
+    expect(await lookupInvitation(link.token)).not.toBeNull();
+    expect(await acceptInvitation({ token: link.token, password: PASSWORD, privacyAccepted: false })).toMatchObject({ ok: false, code: 'invalid' });
+
+    const r = await acceptInvitation({ token: link.token, password: PASSWORD, privacyAccepted: true, ip: '192.0.2.7' });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect((await loadActor(r.token))?.membership).toMatchObject({ practiceId: p2.practiceId, role: 'manager', canApproveScenarios: true });
+    const [u] = await getDb().select().from(users).where(eq(users.id, existing.user.id));
+    expect(u.passwordHash).toBe(existing.user.passwordHash);
+    expect((await signIn({ email: existing.user.email, password: PASSWORD, ip: null })).ok).toBe(true);
+    expect(await lookupInvitation(link.token)).toBeNull();
+  });
+
+  it('guessing the current password through an invitation is throttled like sign-in', async () => {
+    const p1 = await makePractice();
+    const p2 = await makePractice();
+    const existing = await addMember(p1.practiceId, 'trainee');
+    const link = await invite(p2.manager, { email: existing.user.email });
+    for (let i = 0; i < PAIR_LIMIT; i++) {
+      await acceptInvitation({ token: link.token, password: `wrong guess ${i} here`, privacyAccepted: true, ip: '192.0.2.99' });
+    }
+    expect(await acceptInvitation({ token: link.token, password: PASSWORD, privacyAccepted: true, ip: '192.0.2.99' })).toMatchObject({ ok: false, code: 'limit' });
+    expect(await lookupInvitation(link.token)).not.toBeNull();
+  });
+
+  it('a disabled existing account cannot join', async () => {
+    const p2 = await makePractice();
+    const disabled = await makeUser({ disabledAt: new Date() });
+    const link = await invite(p2.manager, { email: disabled.email });
+    expect(await acceptInvitation({ token: link.token, password: PASSWORD, privacyAccepted: true })).toMatchObject({ ok: false, code: 'invalid' });
+  });
+
+  // Security review F1: pre-registering someone's email must not let a manager into the practice that later invites them.
+  it("a manager who pre-registered an email cannot get into the practice that later invites that person", async () => {
+    const A = await makePractice('Practice A');
+    const B = await makePractice('Practice B');
+    const victimEmail = fresh();
+    const inv = await invite(A.manager, { email: victimEmail, name: 'New Receptionist' });
+    expect((await acceptInvitation({ token: inv.token, password: ATTACKER_PW, privacyAccepted: true })).ok).toBe(true);
+
+    // B's manager invites the real person, as a manager. Nothing is granted until the link is used.
+    const linkB = await invite(B.manager, { email: victimEmail, name: 'New Receptionist', role: 'manager', canApproveScenarios: true });
+    const s = await signIn({ email: victimEmail, password: ATTACKER_PW, ip: null });
+    if (!s.ok) throw new Error('sign in failed');
+    const [u] = await getDb().select({ id: users.id }).from(users).where(eq(users.email, victimEmail));
+    expect(await setActivePractice(s.token, u.id, B.practiceId)).toBe(false);
+    const actor = (await loadActor(s.token))!;
+    expect(actor.membership?.practiceId).toBe(A.practiceId);
+    expect(await listMembers(B.manager.actor).then(ms => ms.map(m => m.userId))).not.toContain(u.id);
+    // The real person, holding B's link, cannot take over the account by choosing a password.
+    expect(await acceptInvitation({ token: linkB.token, password: 'the real person chooses this', privacyAccepted: true })).toMatchObject({ ok: false, code: 'invalid' });
+    expect((await signIn({ email: victimEmail, password: ATTACKER_PW, ip: null })).ok).toBe(true);
+  });
+
+  // Security review F2: inviting must reveal nothing about a person who belongs to another practice.
+  it('a manager of A learns nothing about a user who only belongs to B, and B can still reset them', async () => {
+    const A = await makePractice('Practice A2');
+    const B = await makePractice('Practice B2');
+    const bStaff = await addMember(B.practiceId, 'trainee', false, 'Gwen Only-In-B');
+    await signIn({ email: bStaff.user.email, password: PASSWORD, ip: null });
+    const r = await createInvitation(A.manager.actor, { email: bStaff.user.email, name: 'anything', role: 'trainee', canApproveScenarios: false });
+    expect(r.ok).toBe(true);
+    const leaked = (await listMembers(A.manager.actor)).find(m => m.email === bStaff.user.email);
+    expect(leaked).toBeUndefined();
+    expect((await createResetLink(B.manager.actor, bStaff.user.id)).ok).toBe(true);
   });
 
   it('validates the input', async () => {
@@ -157,7 +238,7 @@ describe('invitations', () => {
     const { practiceId, manager } = await makePractice();
     const admin = await platformAdmin();
     const r = await createManagerInvitation(admin, practiceId, { email: fresh(), name: 'New Manager' });
-    expect(r.ok && !r.added).toBe(true);
+    expect(r.ok).toBe(true);
     await expect(createManagerInvitation(manager.actor, practiceId, { email: fresh(), name: 'X' })).rejects.toThrow(ForbiddenError);
     expect(await createManagerInvitation(admin, crypto.randomUUID(), { email: fresh(), name: 'X' })).toMatchObject({ ok: false, code: 'not_found' });
   });
@@ -203,18 +284,41 @@ describe('reset links', () => {
     expect(await createResetLink(manager.actor, adminMember.id)).toMatchObject({ ok: false, code: 'conflict' });
   });
 
-  it('a manager cannot reset someone with an active membership in another practice', async () => {
+  it('a manager cannot reset someone with any membership in another practice, even a deactivated one', async () => {
     const p1 = await makePractice();
     const p2 = await makePractice();
     const t = await addMember(p1.practiceId, 'trainee');
     await getDb().insert(memberships).values({ practiceId: p2.practiceId, userId: t.user.id, role: 'trainee' });
     expect(await createResetLink(p1.manager.actor, t.user.id)).toMatchObject({ ok: false, code: 'conflict' });
-    // ...but can once that other membership is deactivated.
     await getDb()
       .update(memberships)
       .set({ deactivatedAt: new Date() })
       .where(and(eq(memberships.practiceId, p2.practiceId), eq(memberships.userId, t.user.id)));
-    expect((await createResetLink(p1.manager.actor, t.user.id)).ok).toBe(true);
+    expect(await createResetLink(p1.manager.actor, t.user.id)).toMatchObject({ ok: false, code: 'conflict' });
+    // The platform admin can.
+    expect((await createResetLinkAsPlatformAdmin(await platformAdmin(), t.user.id)).ok).toBe(true);
+  });
+
+  // Security review F3: a reset made by A's manager must not carry into B when B reactivates the account.
+  it("a manager of A cannot reset an account that B has deactivated (B might reactivate it)", async () => {
+    const A = await makePractice('Practice A3');
+    const B = await makePractice('Practice B3');
+    const v = await addMember(B.practiceId, 'manager', false, 'Victim');
+    await getDb().insert(memberships).values({ practiceId: A.practiceId, userId: v.user.id, role: 'trainee' });
+    await deactivate(B.practiceId, v.user.id);
+    expect(await createResetLink(A.manager.actor, v.user.id)).toMatchObject({ ok: false, code: 'conflict' });
+    await reactivateMember(B.manager.actor, v.user.id);
+    expect((await signIn({ email: v.user.email, password: ATTACKER_PW, ip: null })).ok).toBe(false);
+  });
+
+  it('re-checks the rule when the link is used, including a deactivated membership added since', async () => {
+    const p1 = await makePractice();
+    const p2 = await makePractice();
+    const t = await addMember(p1.practiceId, 'trainee');
+    const r = await createResetLink(p1.manager.actor, t.user.id);
+    if (!r.ok) throw new Error(r.error);
+    await getDb().insert(memberships).values({ practiceId: p2.practiceId, userId: t.user.id, role: 'manager', deactivatedAt: new Date() });
+    expect(await useReset(r)).toMatchObject({ ok: false, code: 'conflict' });
   });
 
   it('re-checks the rule when the link is used', async () => {
