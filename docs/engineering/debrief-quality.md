@@ -117,3 +117,21 @@ Before changing `src/debrief/rubric.ts`, `src/debrief/prompt.ts` or `DEBRIEF_MOD
 2. Make the change, bump `PROMPT_VERSION` if the wording or rubric changed, and run it again.
 3. Add a row to the table above (date, model, prompt version, numbers). If agreement or wobble got worse, say so and fix or revert the change. Do not change an expectation to get a pass: if you think an expectation is wrong, change it in its own commit, give the reason in the case file and here, and use `--rescore` to re-read the earlier results.
 4. Add a case for any new mistake you see in a real debrief.
+
+## Run record: prompt `2026-11-16.3` (15 November 2026)
+
+Changes since `2026-11-16.2`: the transcript is passed as a delimited block with one line per turn; the unsafe rule in `enforceRules` now forces "unsafe" only when the red flag was missed **and** the caller was not sent to the right place; and the code keeps the first three verified strengths and improvements instead of failing the debrief when the model returns four.
+
+| | `2026-11-16.2` | `2026-11-16.3` |
+|---|---|---|
+| Model | `anthropic/claude-sonnet-5.5` | `anthropic/claude-sonnet-5.5` |
+| Assessments | 57 | 57 |
+| Runs that failed outright | 2 | 0 |
+| Expectations met | 529/529 | 547/549 |
+| Items where runs of the same case disagreed | destination 1 case | destination 1, explanation 1, role 2 cases |
+| Feedback points dropped for a quote not in the transcript | 0 of 322 | 0 of 326 |
+| Average time per debrief | 6.2 s | 6.2 s |
+
+The two misses were both "Stayed in role" scoring 1 instead of 2 on a well-handled call, in one run of three each (`angina-good`, `sore-throat-good`). The assessor treated "chest tightness that the spray hasn't eased needs an ambulance" and "the pharmacist is the best place for a sore throat" as mild clinical judgement. Giving the reason for a destination is what the "Explanation" item asks for, so this is the assessor being too strict, not the receptionist straying. It is the next thing to tighten in the "Stayed in role" anchors.
+
+The outright failures seen before (the model returning four points where three were allowed) no longer occur.
