@@ -1,8 +1,10 @@
 'use server';
 
+import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { requireActor } from '@/auth/current';
 import { readSessionToken } from '@/auth/next-cookies';
+import { loadActor } from '@/auth/sessions';
 import { changePassword } from '@/auth/sign-in';
 import { switchPractice } from '@/practices/dal';
 import { text, type FormState } from '@/app/_lib/form';
@@ -27,9 +29,13 @@ export async function changePasswordAction(_prev: FormState, formData: FormData)
 
 /** The "Switch" buttons. The practice id is checked against the person's own memberships. */
 export async function switchPracticeAction(formData: FormData): Promise<void> {
-  const actor = await requireActor();
   const token = await readSessionToken();
-  if (!token) redirect('/sign-in');
+  // Read the person directly, not through the per-request cached `requireActor()`: the page this
+  // action redirects to is drawn in the same request, and must see the practice chosen here.
+  const actor = token ? await loadActor(token) : null;
+  if (!token || !actor) redirect('/sign-in');
   await switchPractice(actor, token, text(formData, 'practiceId'));
+  // The header and navigation live in the layout, which is otherwise kept across the navigation.
+  revalidatePath('/', 'layout');
   redirect('/');
 }

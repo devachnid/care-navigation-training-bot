@@ -39,15 +39,11 @@ test.afterAll(async () => {
   await Promise.all([managerA, managerB, mine].map(c => c?.close()));
 });
 
-/**
- * Presses "Switch" for a practice. The page it lands on still shows the previous practice (see the
- * test.fail below), so it is reloaded before anything is read from it.
- */
+/** Presses "Switch" for a practice and waits for the home page. */
 async function switchTo(to: Practice): Promise<void> {
   await me.goto('/account');
   await me.getByRole('button', { name: `Switch to ${to.name}` }).click();
   await me.waitForURL(url => url.pathname === '/');
-  await me.reload();
 }
 
 test('an invitation for an email that has an account is a link, not an immediate membership', async () => {
@@ -137,13 +133,8 @@ test('each practice’s manager sees the person only in their own practice’s d
   await expect(a.getByRole('table', { name: /calls, newest first/ })).toContainText('Sore throat');
 });
 
-// KNOWN APP BUG, reported to the maintainer: after "Switch" the page the person lands on still shows the
-// practice they switched FROM (name in the header, and its scenarios) until they reload. The switch itself
-// is saved (the reload shows the new practice). Probably the action reads the person before changing the
-// session and the page it redirects to is drawn from that same read (not checked). When this is fixed this test will
-// start passing, and Playwright will report "expected to fail"; then delete the test.fail line.
+// The page a person lands on after switching must already show the practice they switched to.
 test('after switching, the page shows the new practice without a reload', async () => {
-  test.fail(true, 'the page after Switch still shows the previous practice until reloaded');
   await me.goto('/account');
   await me.getByRole('button', { name: `Switch to ${practiceA.name}` }).click();
   await me.waitForURL(url => url.pathname === '/');

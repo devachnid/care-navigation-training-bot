@@ -96,6 +96,8 @@ Set them in `.env.local` locally and in the Vercel project settings for deployme
 | `npm run db:generate` | After editing `src/db/schema.ts`: writes a new SQL migration into `drizzle/`. Review it and commit it. |
 | `npm run db:migrate` | Applies the migrations in `drizzle/` to `DATABASE_URL`. |
 | `npm run db:seed` | Copies `src/scenarios/seed.ts` into the shared library table. Never changes a practice's own scenarios. |
+| `npm run e2e` | The end-to-end suite: drives the real app in a browser against a test database. See [`e2e/README.md`](e2e/README.md). |
+| `npm run e2e:voice` | One real voice call end to end. Costs a few pence. |
 | `npm run eval:debrief` | Runs the debrief evaluation set against the real model. Costs money. See [`docs/engineering/debrief-quality.md`](docs/engineering/debrief-quality.md). |
 | `npm run admin:reset-link -- <email>` | Makes a 24-hour password reset link for any account, for someone with database access (for example a locked-out administrator). See [`docs/operations.md`](docs/operations.md). |
 
@@ -107,7 +109,8 @@ Set them in `.env.local` locally and in the Vercel project settings for deployme
 | Unit and data-access tests | `npm test` | Nothing: no network, database or keys. Data-access tests run the real migrations on an in-process Postgres (PGlite). | Free |
 | Compile | `npx next build` (not `npm run build`, which also migrates a database) | Nothing | Free |
 | Debrief evaluation | `npm run eval:debrief -- --runs 3 --json <file>` | `AI_GATEWAY_API_KEY` and `DEBRIEF_MODEL` in `.env.local`; network access to the gateway. Where the sandbox needs it, prefix with `NODE_USE_ENV_PROXY=1`. | About 1p per assessment; a full run is 19 cases x 3 runs = 57 assessments, about 60p and 1.5 minutes. An estimate, not checked against a bill. |
-| End-to-end suite, and the voice end-to-end test | Documented in `e2e/README.md`. | See that file. | See that file. |
+| End-to-end suite | `E2E_ALLOW=1 E2E_ADMIN_EMAIL=... E2E_ADMIN_PASSWORD=... npm run e2e` | A test database in `.env.local` (it refuses the production host) and a platform admin account in it. It builds and starts the app itself, drives it in Chromium, and leaves its `e2e-...` test practices behind. See [`e2e/README.md`](e2e/README.md). | Free. About 2 minutes. |
+| Voice end-to-end test | The same variables, then `npm run e2e:voice` | As above, plus `AI_GATEWAY_API_KEY`. Takes one real call with a recorded synthetic receptionist played into a fake microphone, and checks the debrief. | A few pence per run. |
 
 CI (`.github/workflows/ci.yml`) runs lint, typecheck, `npm test` and `npx next build` on every pull request and push to `main`. It never runs the evaluation, the end-to-end suite or anything that migrates a database.
 
