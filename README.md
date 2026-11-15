@@ -1,111 +1,157 @@
-# Care Navigation Voice Trainer
+# Care Navigation Call Practice
 
-A proof of concept for one GP practice in Wales. A receptionist picks a scenario and has a spoken phone call with an AI playing a patient. Their job is to navigate the caller to the right service. When they hang up, they get the transcript and a scored debrief.
+A training tool for GP reception staff in Wales. A receptionist chooses a scenario and has a spoken phone call with an AI playing a patient. Their job is to navigate the caller to the right service. When they hang up they get the transcript and a scored debrief.
 
-The brief is in [`docs/archive/poc-brief.md`](docs/archive/poc-brief.md). What has and has not been tested is in [`docs/engineering/voice-findings.md`](docs/engineering/voice-findings.md).
+It is used by several practices at once. Each practice has its own staff, calls, scores and scenarios, and nobody can see another practice's data. Three kinds of person use it:
 
-> **Not for wider use as it stands.** Access is a single shared code plus a typed name. That is not authentication: anyone with the code can type someone else's name and see their calls. Replace it with real sign-in before this goes beyond a handful of trusted users at one practice. The scenarios are also unapproved drafts (see below).
+- **Trainees** take calls and read their own debriefs and history.
+- **Managers** invite staff, see every call and score in their practice, choose which scenarios staff can use and change practice settings.
+- **The service administrator** adds practices and invites each practice's first manager. They see how much each practice uses the service, but never the content of a call.
+
+> **Scenarios are drafts until a clinician at your practice approves them.** The library scenarios come with answer keys that have not been checked against any practice's protocols. A manager can give a clinician permission to approve scenarios, and the clinician approves each one after checking it. Until then staff can only practise on drafts if the manager switches that on, and every draft call says so.
+>
+> **Scores are for learning, not for appraisal.** A debrief is an AI's judgement against an answer key. The same call can score a little differently on different runs, and the transcript it is based on is reported by the trainee's browser (see [Known limits](#known-limits)).
+
+Never put real patient details in a scenario, and tell trainees never to use any on a call.
 
 ## How it works
 
-1. The trainee enters the access code and their name, and picks a scenario.
-2. The server creates a session and mints a short-lived, single-use token for the voice model. The AI Gateway key never reaches the browser.
-3. The browser opens a WebSocket to the voice model through Vercel AI Gateway. Audio flows directly between the browser and the model and is never stored.
-4. The caller speaks first. Both sides are transcribed as text while the call runs.
-5. On hang-up the browser posts the transcript to the server, which saves it and asks a separate text model to score it against the scenario's answer key and the rubric.
-6. The trainee sees the debrief.
+1. Staff sign in with their own account. A manager invites them with a one-time link; there is no shared code.
+2. The trainee starts a call. The server stores a copy of the scenario as it is at that moment and mints a short-lived, single-use voice token. The AI Gateway key never reaches the browser.
+3. The browser opens a WebSocket to the voice model through Vercel AI Gateway. Audio goes directly between the browser and the model and is never stored. The caller speaks first, and both sides are transcribed as text.
+4. On hang-up the browser sends the transcript to the server, which checks it, saves it, and asks a separate text model to score it against the scenario's answer key and the seven-item rubric.
+5. The trainee reads the debrief. Managers can read any debrief in their practice. If the practice has set a retention period, a daily job deletes old transcripts.
 
-The patient model and the debrief model are separate. The patient's prompt (`src/patient/`) never contains the answer key; the assessor (`src/debrief/`) never role-plays.
+The caller model never sees the answer key, and the assessor model never role-plays. The design, the data model and the reasons for these choices are in [`docs/design/full-app.md`](docs/design/full-app.md).
 
-## Setup
+## Local setup
 
-Needs Node 22 or later, a [Neon](https://neon.tech) Postgres database and a Vercel AI Gateway API key.
+You need Node 22 (CI uses 22), a [Neon](https://neon.tech) Postgres database and a Vercel AI Gateway API key. Use the Neon `preview` branch for local work, never the production branch.
 
-```bash
-npm install
-```
+1. Install the dependencies.
 
-```bash
-cp .env.example .env.local
-```
+   ```bash
+   npm ci
+   ```
 
-Fill in `.env.local`:
+2. Create your environment file.
 
-| Variable | What it is |
+   ```bash
+   cp .env.example .env.local
+   ```
+
+3. Fill in `.env.local`: at least `DATABASE_URL` (the pooled connection string for the `preview` branch), `AI_GATEWAY_API_KEY`, `DEBRIEF_MODEL` and, for first-run setup, a `SETUP_CODE` of 20 or more characters. The [table below](#environment-variables) lists everything. `.env.local` is not committed.
+
+4. Apply the migrations.
+
+   ```bash
+   npm run db:migrate
+   ```
+
+5. Load the scenario library.
+
+   ```bash
+   npm run db:seed
+   ```
+
+6. Start the dev server.
+
+   ```bash
+   npm run dev
+   ```
+
+7. Open <http://localhost:3000/setup> in Chrome or Edge with a headset. Enter the `SETUP_CODE`, your name, email address and password, and a practice name. This creates the service administrator, the first practice (with the library scenarios as drafts) and your manager account in it, and signs you in. `/setup` works only while the database has no users, so on a database that already has accounts it shows "not found": sign in instead.
+
+To work as a trainee, invite yourself from the Team page (use a second email address) and open the one-time link it shows.
+
+## Environment variables
+
+Set them in `.env.local` locally and in the Vercel project settings for deployments (Production and Preview separately). Next.js reads `.env.local` for `npm run dev`; the database and evaluation scripts read it themselves.
+
+| Name | Required | What it does | Used in |
+|---|---|---|---|
+| `DATABASE_URL` | Required | Neon Postgres connection string (pooled). Production uses the Neon default branch; previews and local work use `preview`. | `src/db/client.ts`, `src/db/migrate.ts` (so also `db:seed` and `admin:reset-link`) |
+| `AI_GATEWAY_API_KEY` | Required | Vercel AI Gateway key, read by the AI SDK's gateway provider. Server only. Pays for the voice and debrief models. | voice token route `src/app/api/sessions/[sessionId]/token/route.ts`; debrief `src/debrief/assess.ts`; `evals/debrief/run.ts` checks it is set |
+| `DEBRIEF_MODEL` | Required | Gateway model id of the text model that writes debriefs, for example `anthropic/claude-sonnet-5.5`. Without it every debrief fails. Change it only after running the evaluation set. | `src/debrief/run.ts`, `evals/debrief/run.ts` |
+| `SETUP_CODE` | Required for the first run only | One-time code for `/setup`. At least 20 characters, otherwise setup stays closed. It does nothing once any user exists; remove it afterwards. | `src/auth/setup.ts` |
+| `CRON_SECRET` | Required in production for transcript deletion | At least 20 random characters. Vercel sends it as `Authorization: Bearer ...` to the daily retention job. Without it the job answers 503 and nothing is deleted, whatever practices have chosen. | `src/app/api/cron/retention/route.ts` |
+| `REALTIME_MODEL` | Optional | Voice model gateway id. Default `openai/gpt-realtime-2.1`. | token route; `src/app/(call)/call/[sessionId]/page.tsx` |
+| `REALTIME_TURN_DETECTION` | Optional | JSON that overrides how the caller decides the receptionist has finished speaking. Default `{"type":"semantic-vad"}`. For silence-based detection with a longer wait: `{"type":"server-vad","silenceDurationMs":900}`. Invalid JSON is ignored with a warning. | `src/patient/session-config.ts` |
+| `REALTIME_PROVIDER_OPTIONS` | Optional | JSON passed to the voice session as provider options. Invalid JSON is ignored with a warning. | `src/patient/session-config.ts` |
+| `MAX_CALL_SECONDS` | Optional | Length at which the call page hangs up, with a warning one minute before. Default `600`. A value that is not a positive whole number falls back to the default. | `src/sessions/dal.ts`, call page |
+| `DAILY_CALL_LIMIT` | Optional | Calls one person can start per day (Europe/London day, across all their practices). Default `25`. Same fallback rule. | `src/sessions/dal.ts` |
+
+`ACCESS_CODE`, used by the proof of concept, is retired and does nothing.
+
+## npm scripts
+
+| Script | What it is for |
 |---|---|
-| `AI_GATEWAY_API_KEY` | Vercel AI Gateway key. Server only. |
-| `DATABASE_URL` | Neon connection string. |
-| `ACCESS_CODE` | The shared code trainees type. Changing it signs everyone out. |
-| `REALTIME_MODEL` | Voice model. Default `openai/gpt-realtime-2.1`. |
-| `DEBRIEF_MODEL` | Text model that writes the debrief, as a gateway model id. Required. |
-| `REALTIME_TURN_DETECTION` | Optional. JSON overriding how the caller decides you have finished speaking. Default `{"type":"semantic-vad"}`. To go back to silence-based detection with a longer wait: `{"type":"server-vad","silenceDurationMs":900}`. |
-| `REALTIME_PROVIDER_OPTIONS` | Optional. JSON passed to the voice session as provider options. |
+| `npm run dev` | Dev server (Turbopack) on port 3000. |
+| `npm run build` | The deploy build: applies migrations (`db:migrate`), syncs the scenario library (`db:seed`), then `next build`. It writes to whichever database `DATABASE_URL` points at. |
+| `npm start` | Serves a production build. |
+| `npm run lint` | ESLint, including the rule that only data-access modules may use the database. |
+| `npm run typecheck` | Generates Next route types, then runs the TypeScript compiler. |
+| `npm test` | Unit and data-access tests (Vitest). |
+| `npm run db:generate` | After editing `src/db/schema.ts`: writes a new SQL migration into `drizzle/`. Review it and commit it. |
+| `npm run db:migrate` | Applies the migrations in `drizzle/` to `DATABASE_URL`. |
+| `npm run db:seed` | Copies `src/scenarios/seed.ts` into the shared library table. Never changes a practice's own scenarios. |
+| `npm run eval:debrief` | Runs the debrief evaluation set against the real model. Costs money. See [`docs/engineering/debrief-quality.md`](docs/engineering/debrief-quality.md). |
+| `npm run admin:reset-link -- <email>` | Makes a 24-hour password reset link for any account, for someone with database access (for example a locked-out administrator). See [`docs/operations.md`](docs/operations.md). |
 
-Then create the tables, load the scenarios and start:
+## Checks
 
-```bash
-npm run db:migrate
-```
+| Check | How | Needs | Cost |
+|---|---|---|---|
+| Lint and types | `npm run lint`, `npm run typecheck` | Nothing | Free |
+| Unit and data-access tests | `npm test` | Nothing: no network, database or keys. Data-access tests run the real migrations on an in-process Postgres (PGlite). | Free |
+| Compile | `npx next build` (not `npm run build`, which also migrates a database) | Nothing | Free |
+| Debrief evaluation | `npm run eval:debrief -- --runs 3 --json <file>` | `AI_GATEWAY_API_KEY` and `DEBRIEF_MODEL` in `.env.local`; network access to the gateway. Where the sandbox needs it, prefix with `NODE_USE_ENV_PROXY=1`. | About 1p per assessment; a full run is 19 cases x 3 runs = 57 assessments, about 60p and 1.5 minutes. An estimate, not checked against a bill. |
+| End-to-end suite, and the voice end-to-end test | Documented in `e2e/README.md`. | See that file. | See that file. |
 
-```bash
-npm run db:seed
-```
+CI (`.github/workflows/ci.yml`) runs lint, typecheck, `npm test` and `npx next build` on every pull request and push to `main`. It never runs the evaluation, the end-to-end suite or anything that migrates a database.
 
-```bash
-npm run dev
-```
+## Deploying
 
-Open http://localhost:3000 in Chrome or Edge with a headset.
+- **Branches.** `main` is production. Work happens on branches and reaches `main` by pull request. Every pull request gets a Vercel preview deployment, which uses the Neon `preview` branch. Production uses the Neon default branch. This depends on `DATABASE_URL` being set differently for Production and Preview in Vercel.
+- **Build.** Vercel runs `npm run build`, so every deployment, preview or production, first migrates and seeds the database its environment points at. Migrations therefore reach a database before the new code is live. A code rollback does not undo a migration.
+- **Region.** `vercel.json` runs server functions in London (`lhr1`).
+- **Daily job.** `vercel.json` schedules `/api/cron/retention` at 03:20 UTC every day. It deletes transcripts older than each practice's retention period. Vercel runs cron jobs on the production deployment, and the job needs `CRON_SECRET` set there.
+- **First deployment.** Set the environment variables, deploy, then open `/setup` once. The full runbook is [`docs/operations.md`](docs/operations.md).
 
-Checks: `npm test`, `npm run typecheck`, `npm run lint`.
+## Known limits
 
-## Deploying to Vercel
+The first three come from one choice inherited from the proof of concept: the trainee's browser holds the voice connection. Evidence is in [`docs/engineering/voice-findings.md`](docs/engineering/voice-findings.md). Relaying the voice connection through our own server would fix all three, and is the first thing to do if scores ever matter beyond practice.
 
-Import the repository, set the environment variables above, and deploy. `vercel.json` runs the server functions in London (`lhr1`), next to the database. The build command (`npm run build`) applies database migrations and re-loads the scenarios before building, so the database always matches the code.
+1. **The browser reports the transcript.** A trainee who wanted to could submit a transcript they wrote. The server refuses a transcript that is too long to have been spoken in the time the call was connected, and gives the assessor the transcript as data, but neither stops a determined cheat. A manager can read the transcript behind any score.
+2. **The caller's prompt, including the hidden facts, is visible in the trainee's browser** to someone who opens developer tools. The answer key is not.
+3. **The server cannot end a voice session.** It limits how many voice tokens are issued (3 per call, 25 calls a day per person). The 10-minute hang-up is done by the page. Set a monthly budget on the AI Gateway key.
 
-## Adding or changing a scenario
+Also:
 
-Edit [`src/scenarios/seed.ts`](src/scenarios/seed.ts) only, then redeploy (or run `npm run db:seed`). No other code changes are needed.
+- **Library scenarios are drafts** until a clinician at each practice approves them, and the debrief evaluation set has not been checked by a clinician or a practice manager.
+- **The debrief is an AI judgement** and varies a little between runs.
+- **The practice network is untested.** The voice connection is a WebSocket to `ai-gateway.vercel.sh`, which a practice firewall may block.
+- **The voice API is experimental.** AI Gateway realtime and the AI SDK realtime hook can change in patch releases, so `ai`, `@ai-sdk/react` and `@ai-sdk/gateway` are pinned to exact versions. Re-test a call after any upgrade.
+- **Deletion is by retention period only.** There is no screen or command to delete one person's data or one call. Retention removes transcripts, quoted lines and reports of problems, and keeps scores, accounts and the audit log.
+- **A call cut off mid-debrief** can stay at "Debrief being prepared" and is not retried.
+- English only. No audio is stored. No analytics, third-party scripts or external assets. The PoC was used in Chrome and Edge on desktop; no other browser has been tested.
 
-| Field | Meaning |
+The full list, with the smaller accepted trade-offs, is section 7a of the design.
+
+## More documentation
+
+| File | What is in it |
 |---|---|
-| `id` | Permanent slug, lower case with hyphens. Do not change it once calls exist. |
-| `title`, `difficulty` | Shown on the scenario list. Keep the title from giving the answer away. |
-| `persona` | Invented name, age and a line of character. |
-| `voice` | Which voice plays the caller: `alloy`, `ash`, `ballad`, `coral`, `echo`, `sage`, `shimmer`, `verse`, `marin` or `cedar`. The practice chose `ballad` for male callers and `coral` for female callers. |
-| `openingLine` | The caller's first words. |
-| `presentingStory` | What the caller says unprompted. |
-| `hiddenFacts` | Things the caller only says if asked. Each has the `fact` and `unlockedBy`, the kind of question that brings it out. |
-| `emotionalState` | How the caller feels and how that changes with good or poor handling. |
-| `correctOutcome`, `acceptableAlternatives` | The answer key. Seen only by the debrief model. |
-| `redFlags` | Leave empty if there is none; the red flag rubric item is then "n/a". |
-| `unsafeOutcomes` | What counts as unsafe. The first one is shown on the debrief's unsafe banner. |
-| `clinicianApproved` | Leave `false` until a GP has checked the answer key against the practice's protocols. While false, the debrief shows a "draft scenario" notice. |
-| `active` | `false` hides it from the list. |
+| [`docs/operations.md`](docs/operations.md) | Runbook for whoever runs the service: setup, practices, lock-outs, secrets, cost, changing models and scenarios, migrations, troubleshooting. |
+| [`docs/design/full-app.md`](docs/design/full-app.md) | The design: people and permissions, architecture rules, data model, sign-in, limits, known limits, security headers, retention. |
+| [`docs/engineering/next16-notes.md`](docs/engineering/next16-notes.md) | Next.js 16 conventions that differ from older versions. Read it, and the docs bundled in `node_modules/next/dist/docs/`, before writing Next code (see `AGENTS.md`). |
+| [`docs/engineering/voice-findings.md`](docs/engineering/voice-findings.md) | What was tested about the voice connection, turn-taking, the debrief model and why the caller's prompt reaches the browser. |
+| [`docs/engineering/debrief-quality.md`](docs/engineering/debrief-quality.md) | The debrief evaluation set, how to run it, results, and the rule for changing the rubric, prompt or model. |
+| `e2e/README.md` | The end-to-end suite and the voice end-to-end test. |
+| [`src/ui/README.md`](src/ui/README.md), [`src/app/_lib/README.md`](src/app/_lib/README.md) | The shared components and the page and form helpers. |
+| [`docs/archive/`](docs/archive/) | The proof-of-concept brief and plan. Historical. |
 
-Removing a scenario from the file hides it; past calls are kept.
+## Scenarios and the rubric
 
-**Never put real patient details in a scenario, and tell trainees not to use any on a call.**
-
-## How the debrief is scored
-
-Seven items, each 0 to 2 with a one-line reason: greeting and identification, information gathering, red flag recognition, correct destination, stayed in role, explanation, manner. The overall score is the percentage of available marks; red flag recognition is left out when the scenario has none.
-
-Some rules are enforced in code after the model answers, whatever it says (`src/debrief/run.ts`):
-
-- If the scenario has a red flag and it was not handled, the outcome is unsafe.
-- An unsafe outcome is never a correct outcome.
-- Any strength or improvement whose quote does not appear in the transcript is dropped.
-
-A call under 20 seconds, or one where the trainee never spoke, is not assessed: it is recorded as a fail with a score of 0.
-
-## Known limitations
-
-- **No real authentication** (see the top of this page).
-- **Scenarios are drafts.** All four have `clinicianApproved: false`. The answer keys are not clinical guidance.
-- **The caller's prompt is readable in the browser.** A trainee who opens developer tools can see the hidden facts (not the answer key). Accepted for the PoC.
-- **The debrief is an AI judgement** against the answer key. It can be wrong, and its quality depends on `DEBRIEF_MODEL`.
-- **Experimental voice API.** AI Gateway realtime and the AI SDK realtime hook are experimental and can change in patch releases, so `ai`, `@ai-sdk/react` and `@ai-sdk/gateway` are pinned to exact versions. Re-test a call after any upgrade.
-- **Practice network untested.** The voice connection is a WebSocket to `ai-gateway.vercel.sh`; a practice firewall may block it.
-- **Unfinished calls.** If the browser is closed mid-call, the session stays "Not finished" with no transcript.
-- English only. Chrome and Edge on desktop only. Transcripts only, no audio. No analytics or third-party scripts.
+To add or change a library scenario, edit [`src/scenarios/seed.ts`](src/scenarios/seed.ts) and see "Adding or changing a library scenario" in the runbook, which says what happens to practices' existing copies. The debrief scores seven items 0 to 2 (greeting and identification, information gathering, red flag recognition, correct destination, stayed in role, explanation, manner) in `src/debrief/rubric.ts`; the overall score is the percentage of available marks, leaving out red flag recognition when the scenario has no red flag. A call is shown as **Passed** when the outcome was correct and not unsafe. Code enforces two rules after the model answers (`src/debrief/assess.ts`): feedback whose quote is not in the transcript is dropped, and a red flag that was missed with the caller not sent to the right place is an unsafe outcome. An unsafe outcome is never a correct one.
