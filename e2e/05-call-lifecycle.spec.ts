@@ -1,4 +1,5 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
+import { CALL_STATUS, LATEST_RESULT } from '@/app/_lib/labels';
 import { finishCall } from './support/call';
 import { csvRecords } from './support/csv';
 import {
@@ -48,7 +49,7 @@ test.beforeAll(async ({ browser }) => {
   scenarioId = await scenarioIdByTitle(manager, TITLE);
   await clinicianPage.goto(`/scenarios/${scenarioId}`);
   await clinicianPage.getByLabel(/I have checked this scenario/).check();
-  await clinicianPage.getByRole('button', { name: 'Approve', exact: true }).click();
+  await clinicianPage.getByRole('button', { name: 'Approve this scenario' }).click();
   await expect(clinicianPage.getByText(new RegExp(`^Approved by ${clinician.name}`))).toBeVisible();
 });
 
@@ -64,11 +65,11 @@ test('the trainee starts a call and reaches the call screen, which holds no answ
 
   sessionId = await startCallFromHome(traineePage, TITLE);
   await expect(traineePage.getByRole('heading', { level: 1, name: TITLE })).toBeVisible();
-  await expect(traineePage.getByRole('button', { name: 'Start call' })).toBeVisible();
+  await expect(traineePage.getByRole('button', { name: 'Start the call' })).toBeVisible();
 
   // The page as the server sent it (the text of the page and the data it hands to the browser), not only what is drawn.
   const html = await (await traineePage.request.get(`/call/${sessionId}`)).text();
-  expect(html).toContain('Start call');
+  expect(html).toContain('Start the call');
   for (const secret of [answerKey, 'Community pharmacy', 'Common Ailments Scheme', 'sore throat test and treat']) {
     expect(html, `the call page must not contain: ${secret}`).not.toContain(secret);
   }
@@ -85,7 +86,7 @@ test('the call is connected, ended and debriefed; the trainee sees it in My call
 
   await traineePage.goto('/history');
   const row = traineePage.getByRole('table', { name: 'Your calls, newest first' }).getByRole('row', { name: new RegExp(TITLE) });
-  await expect(row).toContainText('Complete');
+  await expect(row).toContainText(CALL_STATUS.complete);
   await expect(row).toContainText('85%');
   await expect(row).toContainText('2:30');
   await row.getByRole('link', { name: TITLE }).click();
@@ -106,10 +107,10 @@ test('the home page shows the trainee their progress', async () => {
   await traineePage.goto('/');
   const card = traineePage.getByRole('listitem').filter({ has: traineePage.getByRole('button', { name: /^Start the call/ }) }).filter({ hasText: TITLE });
   const progress = card.getByLabel(`Your progress on ${TITLE}`);
-  await expect(progress).toContainText('Attempts');
+  await expect(progress).toContainText('Calls made');
   await expect(progress).toContainText('1');
   await expect(progress).toContainText('85%');
-  await expect(progress).toContainText('Passed');
+  await expect(progress).toContainText(LATEST_RESULT.passed.label);
 });
 
 test('the trainee reports a problem with the debrief', async () => {
@@ -129,7 +130,7 @@ test('the manager sees the call on the person’s page, in reports, and in the C
   await expect(calls.getByRole('row', { name: new RegExp(TITLE) })).toContainText('85%');
   await expect(manager.getByRole('table', { name: new RegExp('progress by scenario') })).toContainText(TITLE);
   await manager.goto('/team');
-  const teamRow = manager.getByRole('table', { name: 'People in your practice, with their calls' }).getByRole('row', { name: new RegExp(trainee.email) });
+  const teamRow = manager.getByRole('table', { name: 'Staff in your practice, with their calls' }).getByRole('row', { name: new RegExp(trainee.email) });
   await expect(teamRow).toContainText('85%');
 
   // Reports: the numbers and the who-has-done-what grid.
@@ -141,7 +142,7 @@ test('the manager sees the call on the person’s page, in reports, and in the C
   await expect(summary.getByText('Unsafe outcomes').locator('..')).toHaveText(/^Unsafe outcomes\s*0$/);
   const grid = manager.getByRole('table', { name: /^Latest result for each person and scenario/ });
   const traineeRow = grid.getByRole('row', { name: new RegExp(trainee.name) });
-  await expect(traineeRow).toContainText('Passed');
+  await expect(traineeRow).toContainText(LATEST_RESULT.passed.label);
   await expect(traineeRow).toContainText('Best 85%');
   await expect(traineeRow.getByText('Not tried')).toHaveCount(3);
   const clinicianRow = grid.getByRole('row', { name: new RegExp(clinician.name) });

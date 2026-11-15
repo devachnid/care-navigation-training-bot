@@ -15,6 +15,13 @@ One spec file per journey. Each creates its own practice, so the files run side 
 | `05-call-lifecycle.spec.ts` | A call without audio: start in the browser, the call page holds no answer key, finish the call through the support helper, then the trainee's history, debrief and progress, a reported problem, the manager's team page, reports, CSV and "dealt with", and a manager of another practice seeing none of it. |
 | `06-account.spec.ts` | Wrong password at sign-in (generic message); wrong current password; changing the password signs out other browsers; the old password stops working; sign out ends the session. |
 | `07-voice.spec.ts` (`@voice`) | A real voice call, see below. Not part of `npm run e2e`. |
+| `08-second-practice.spec.ts` | Someone with an account is invited to a second practice: the invitation is a link; the page asks for the current password; a wrong one is refused and does not use the link up; the right one joins; the person switches practice on the account page and sees only that practice's data in each. Contains one `test.fail()` (below). |
+| `09-admin.spec.ts` | The platform admin suspends a practice (its signed-in manager is turned away), resumes it, and makes a reset link for one of its people; after the link is used the manager sees both entries about the service administrator in "Recent changes". |
+| `10-removed-manager.spec.ts` | An invitation made by a manager stops working when that manager is demoted, and when they are deactivated. |
+| `11-retention.spec.ts` | Transcript retention end to end: 90-day setting, a call made 100 days old, the cron route refused without its secret and run with it, the old debrief shows the deleted-transcript note with its score, a call from today is untouched. |
+| `12-call-limits.spec.ts` | A too-short call is a fail scoring 0; the call after the daily limit is refused with the reason (also for "Try this call"). |
+
+The permissions spec also checks the security headers: a fresh Content-Security-Policy nonce on every page (and the nonce is on the page's scripts), the protective headers, and `no-store` plus `Referrer-Policy: no-referrer` on `/invite/*` and `/setup`.
 
 ### The voice test
 
@@ -51,26 +58,30 @@ Point `DATABASE_URL` in `.env.local` at the preview branch and run as above. The
 | `DATABASE_URL` | From `.env.local`. |
 | `AI_GATEWAY_API_KEY` | From `.env.local`. Voice test only. |
 | `PLAYWRIGHT_CHROMIUM_PATH` | Optional. Path of a Chromium to use instead of the one `npx playwright install chromium` fetched. Leave it unset on a normal machine. |
+| `CRON_SECRET` | From `.env.local`, 20 or more characters, and the same value the app is started with. Read at run time, never written in a file. Used to call `/api/cron/retention` (journey 11); journey 4 checks the route refuses everything without it. |
+| `E2E_DAILY_CALL_LIMIT` | Optional. The daily call limit for the server this config starts (`DAILY_CALL_LIMIT`). Default 3. Journey 12 makes exactly that many calls as one person; no other journey makes more than one a day as any person. If you reuse a server that is already running, it must have been started with the same limit. |
 | `E2E_PORT` | Optional. Port for the app. Default 3232. |
 | `E2E_WORKERS` | Optional. Spec files run at once. Default 4. |
 | `HTTPS_PROXY` | If set, the voice test's browser uses it (with `localhost` excluded). |
 
 ### Sign-in throttle
 
-The app counts sign-in attempts per address: 30 in 15 minutes, whoever the person is, and failed or successful. A suite that signs in many times from one machine can use that up, and then every sign-in is refused with the usual "do not match" message. The suite signs in as little as it can: the admin once (the cookie is kept in `e2e/.auth/admin.json`, which is git-ignored, and reused while it works), and new people through their invitation links, which are not sign-ins. A run uses about six. If a run fails at sign-in for no reason, wait 15 minutes. The same limit is shared by anyone else using the same database from the same address.
+The app counts failed sign-ins per address (30 in 15 minutes, whoever the person is); a successful sign-in gives its attempt back. A run makes only a handful of failed attempts on purpose (a wrong password, a wrong current password). The admin's cookie is kept in `e2e/.auth/admin.json` (git-ignored) and reused while it works. If the limit is ever reached, sign-ins are refused with the usual "do not match" message: wait 15 minutes. The limit is shared with anyone else using the same database from the same address.
 
 ## What it leaves behind
 
 Everything is created through the app and nothing is deleted, because the app has no delete.
 
-- Practices named `e2e-<runid>-<journey> ...`, each with its people (`e2e-<runid>-<journey>-<role>@example.test`), invitations, scenarios (the library copies), calls, debriefs and audit entries. About ten practices and thirty people per run. `<runid>` is different for every run and printed at the start of the run.
+- Practices named `e2e-<runid>-<journey> ...`, each with its people (`e2e-<runid>-<journey>-<role>@example.test`), invitations, scenarios (the library copies), calls, debriefs and audit entries. About eighteen practices and fifty people per run. `<runid>` is different for every run and printed at the start of the run.
 - Sign-in sessions and throttle counters, which expire.
 
 Test data is told apart by the `e2e-` prefix. The suite never reads or changes anything it did not create, except that the platform admin's own pages are requested (read only) in the permissions table, and the admin signs in.
 
+Journey 11 calls the daily retention job, which deletes every expired transcript in the database it runs against, not only this run's. That is what the job does in production. Use a test database.
+
 ## The support helper
 
-The one thing the pages cannot do here is finish a call: that needs a microphone and the debrief model. `support/call-helper.ts` does it with the backend functions the app uses (`signIn`, `claimForToken`, `endCall`, `saveDebrief`), run with `tsx` by `support/call.ts`, as the person who owns the call. It writes nothing with raw SQL. The call itself is still started in the browser.
+The pages cannot finish a call (that needs a microphone and the debrief model) or make one 100 days old. `support/call-helper.ts` does those with the backend functions the app uses (`signIn`, `startCall`, `claimForToken`, `endCall`, `saveDebrief`), run with `tsx` by `support/call.ts`, as the person who owns the call. Modes: finish a call started in the browser; end it too short; make an old call (it gives the backend a past time). A call is always connected for as long as its transcript needs (the server measures connected time and refuses a transcript too long for it). It writes nothing with raw SQL.
 
 ## Adding a route to the permissions table
 
@@ -88,3 +99,14 @@ Open `04-permissions.spec.ts` and find `ROUTES`. Add one row:
 The last test in the file lists the routes under `src/app` and fails if one has no row, so a new page cannot be forgotten.
 
 The `admin` person is the platform admin used for the whole suite, who is also a manager of a practice that is not practice A. A platform admin with no practice at all cannot be made through the app (the only way to give someone the admin flag is the one-off setup), so that case is not in the table.
+
+## Known app bug (a `test.fail()`)
+
+`08-second-practice.spec.ts` has "after switching, the page shows the new practice without a reload", marked `test.fail()`. After "Switch" on the account page the person lands on a page that still shows the practice they left (header and scenarios) until they reload. The switch is saved. When the app is fixed Playwright reports that test as passing unexpectedly: remove the `test.fail` line and the `reload()` in `switchTo`.
+
+## Not covered
+
+- Server actions called directly (they are only exercised through the pages); the permissions table covers pages and route handlers.
+- A platform admin with no practice (cannot be made through the app).
+- Practice name and other settings changes, writing a new scenario, adding from the library, "Try this call" beyond the limit message, practice-level debrief retry, unsafe-outcome displays, the reports period tabs, three voice tokens per call, the debrief retry cap.
+- The real voice call is covered only by `e2e:voice`, and its debrief wording is not asserted.

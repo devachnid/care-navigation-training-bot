@@ -12,6 +12,11 @@ dotenv.config({ path: path.resolve(__dirname, '.env.local'), quiet: true });
 assertSafeToRun();
 runId();
 
+// A low daily call limit for the server this config starts, so the limit can be reached without a hundred
+// calls. No other journey makes more than one call a day as any one person. The helper scripts read it too.
+const dailyLimit = process.env.E2E_DAILY_CALL_LIMIT || '3';
+process.env.DAILY_CALL_LIMIT = dailyLimit;
+
 const executablePath = process.env.PLAYWRIGHT_CHROMIUM_PATH || undefined;
 
 export default defineConfig({
@@ -48,6 +53,6 @@ export default defineConfig({
     timeout: 600_000,
     stdout: 'pipe',
     stderr: 'pipe',
-    env: { NODE_USE_ENV_PROXY: '1', NEXT_TELEMETRY_DISABLED: '1' },
+    env: { NODE_USE_ENV_PROXY: '1', NEXT_TELEMETRY_DISABLED: '1', DAILY_CALL_LIMIT: dailyLimit },
   },
 });

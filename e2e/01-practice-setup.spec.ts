@@ -61,8 +61,8 @@ test('a manager link for a practice can be cancelled by the admin', async ({ bro
   const practiceId = await addPractice(admin, other.practiceName());
   const link = await inviteManager(admin, practiceId, cancelled);
 
-  await admin.getByRole('button', { name: 'Revoke' }).click();
-  await admin.getByRole('button', { name: 'Yes, revoke' }).click();
+  await admin.getByRole('button', { name: 'Cancel invitation' }).click();
+  await admin.getByRole('button', { name: 'Yes, cancel it' }).click();
   await expect(admin.getByRole('table', { name: 'Manager invitations waiting to be used' })).toContainText('Nobody is waiting to join.');
 
   const stranger = await browser.newContext();

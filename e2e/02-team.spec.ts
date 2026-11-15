@@ -29,7 +29,7 @@ async function openPerson(page: Page, person: Person): Promise<void> {
   await expect(page.getByRole('heading', { level: 1, name: person.name })).toBeVisible();
 }
 
-const teamRow = (page: Page, person: Person) => page.getByRole('table', { name: 'People in your practice, with their calls' }).getByRole('row', { name: new RegExp(person.email) });
+const teamRow = (page: Page, person: Person) => page.getByRole('table', { name: 'Staff in your practice, with their calls' }).getByRole('row', { name: new RegExp(person.email) });
 
 test.beforeAll(async ({ browser }) => {
   practice = await setUpPractice(browser, 'team');
@@ -46,7 +46,7 @@ test('the manager invites a trainee and a clinician, and both join', async ({ br
   await addTeamMember(browser, practice, clinician);
 
   await manager.goto('/team');
-  const people = manager.getByRole('table', { name: 'People in your practice, with their calls' });
+  const people = manager.getByRole('table', { name: 'Staff in your practice, with their calls' });
   await expect(people).toContainText(trainee.name);
   await expect(people).toContainText(clinician.name);
   await expect(teamRow(manager, clinician)).toContainText('Approver');
@@ -99,7 +99,7 @@ test('a deactivated person can no longer use the practice, and can again once re
   // Their open browser is turned away on the next page. (Signing in again is not tried here: sign-ins are throttled per address, see the README.)
   await own.goto('/');
   await expect(own).toHaveURL(/\/no-access$/);
-  await expect(own.getByRole('heading', { level: 1, name: 'You no longer have access to a practice' })).toBeVisible();
+  await expect(own.getByRole('heading', { level: 1, name: 'You cannot use a practice at the moment' })).toBeVisible();
   await own.goto('/history');
   await expect(own).toHaveURL(/\/no-access$/);
 
@@ -158,8 +158,8 @@ test('the manager can revoke an invitation, and the link stops working', async (
   await expect(waiting).toContainText(invited.email);
 
   const row = waiting.getByRole('row', { name: new RegExp(invited.email) });
-  await row.getByRole('button', { name: 'Revoke' }).click();
-  await manager.getByRole('button', { name: 'Yes, revoke' }).click();
+  await row.getByRole('button', { name: 'Cancel invitation' }).click();
+  await manager.getByRole('button', { name: 'Yes, cancel it' }).click();
   // The row goes once the change has been made (do not leave the page before then).
   await expect(row).toHaveCount(0);
   await manager.goto('/team');
