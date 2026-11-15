@@ -85,7 +85,8 @@ export default async function DebriefPage({ params }: { params: Promise<{ sessio
         {session.status === 'failed' && (
           <Alert tone="error" title="The debrief could not be produced.">
             The transcript is saved below.
-            {session.isOwn && (
+            {session.isOwn && session.debriefRetriesLeft === 0 && <p>It has been tried three times. Start a new call to get a debrief.</p>}
+            {session.isOwn && session.debriefRetriesLeft > 0 && (
               <form action={retryDebriefAction}>
                 <input type="hidden" name="sessionId" value={sessionId} />
                 <SubmitButton pendingLabel="Trying again…">Try the debrief again</SubmitButton>

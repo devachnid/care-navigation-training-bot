@@ -4,7 +4,7 @@ import { getDb } from '@/db/client';
 import { debriefFlags } from '@/db/schema';
 import { ForbiddenError } from '@/policy/result';
 import { approveScenario, listScenariosForManagement } from '@/scenarios/practice-dal';
-import { endCall, saveDebrief, startCall } from '@/sessions/dal';
+import { claimForToken, endCall, saveDebrief, startCall } from '@/sessions/dal';
 import { createTestDb } from '@/test/db';
 import { addMember, makePractice, platformAdmin, seedLibrary } from '@/test/fixtures';
 import { FLAG_REASON_MAX, flagDebrief, getMyFlag, listOpenFlags, resolveFlag } from './flags-dal';
@@ -32,8 +32,11 @@ async function setup() {
   const colleague = await addMember(p.practiceId, 'trainee', false, 'Colleague');
   const angina = (await listScenariosForManagement(p.manager.actor)).find(x => x.libraryScenarioId === 'angina-repeat')!;
   await approveScenario(approver.actor, angina.id, 1);
-  const started = await startCall(trainee.actor, angina.id, new Date(Date.now() - 120_000));
+  const startedAt = new Date(Date.now() - 120_000);
+  const started = await startCall(trainee.actor, angina.id, startedAt);
   if (!started.ok) throw new Error(started.error);
+  // The voice connection opened (only a connected call can be debriefed).
+  await claimForToken(trainee.actor, started.sessionId, startedAt);
   const sessionId = started.sessionId;
   await endCall(trainee.actor, sessionId, {
     durationSeconds: 90,

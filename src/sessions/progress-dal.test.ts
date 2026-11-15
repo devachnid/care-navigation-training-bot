@@ -5,7 +5,7 @@ import { createTestDb } from '@/test/db';
 import { getDb } from '@/db/client';
 import { memberships } from '@/db/schema';
 import { addMember, makePractice, makeUser, platformAdmin, seedLibrary, signedIn } from '@/test/fixtures';
-import { endCall, saveDebrief, startCall, type DebriefValues } from './dal';
+import { claimForToken, endCall, saveDebrief, startCall, type DebriefValues } from './dal';
 import { listMyProgress } from './progress-dal';
 
 const RUBRIC_SCORES = {
@@ -39,8 +39,11 @@ const verdict = (over: Partial<DebriefValues>): DebriefValues => ({
 
 /** A finished, debriefed call, started `minutesAgo` minutes ago. */
 async function assessedCall(actor: Parameters<typeof startCall>[0], scenarioId: string, minutesAgo: number, over: Partial<DebriefValues>) {
-  const started = await startCall(actor, scenarioId, new Date(Date.now() - minutesAgo * 60_000));
+  const at = new Date(Date.now() - minutesAgo * 60_000);
+  const started = await startCall(actor, scenarioId, at);
   if (!started.ok) throw new Error(started.error);
+  // The voice connection opened (only a connected call can be debriefed).
+  await claimForToken(actor, started.sessionId, at);
   await endCall(actor, started.sessionId, {
     durationSeconds: 100,
     turns: [

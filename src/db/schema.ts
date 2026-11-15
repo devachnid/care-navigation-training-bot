@@ -207,6 +207,10 @@ export const sessions = pgTable(
     endedAt: tz('ended_at'),
     durationSeconds: integer('duration_seconds'),
     status: text('status').$type<SessionStatus>().notNull().default('created'),
+    /** Voice tokens minted for this call (at most 3). */
+    tokenMints: integer('token_mints').notNull().default(0),
+    /** Debrief runs started: the automatic one counts as 1; at most 2 retries after that. */
+    debriefAttempts: integer('debrief_attempts').notNull().default(0),
   },
   t => [
     index('sessions_practice_started').on(t.practiceId, t.startedAt),

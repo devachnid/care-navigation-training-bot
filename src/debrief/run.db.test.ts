@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { approveScenario, listScenariosForManagement, updateScenario } from '@/scenarios/practice-dal';
 import { scenarios as library } from '@/scenarios/seed';
 import { pickContent } from '@/scenarios/types';
-import { endCall, getDebrief, getSession, startCall } from '@/sessions/dal';
+import { claimForToken, endCall, getDebrief, getSession, startCall } from '@/sessions/dal';
 import { createTestDb } from '@/test/db';
 import { addMember, makePractice, seedLibrary } from '@/test/fixtures';
 import { PROMPT_VERSION } from './prompt';
@@ -35,8 +35,11 @@ async function finishedCall() {
   const trainee = await addMember(p.practiceId, 'trainee');
   const angina = (await listScenariosForManagement(p.manager.actor)).find(x => x.libraryScenarioId === 'angina-repeat')!;
   await approveScenario(approver.actor, angina.id, 1);
-  const started = await startCall(trainee.actor, angina.id, new Date(Date.now() - 120_000));
+  const startedAt = new Date(Date.now() - 120_000);
+  const started = await startCall(trainee.actor, angina.id, startedAt);
   if (!started.ok) throw new Error(started.error);
+  // The voice connection opened (only a connected call can be debriefed).
+  await claimForToken(trainee.actor, started.sessionId, startedAt);
   await endCall(trainee.actor, started.sessionId, {
     durationSeconds: 100,
     turns: [

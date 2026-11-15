@@ -24,6 +24,14 @@ export const dailyCallLimit = () => envInt('DAILY_CALL_LIMIT', 25);
 export const maxCallSeconds = () => envInt('MAX_CALL_SECONDS', 600);
 /** Shorter than this, or the trainee never spoke: a fail with a score of 0. */
 export const MIN_CALL_SECONDS = 20;
+/** Voice tokens per call: the first connection plus two reconnections. */
+export const MAX_TOKEN_MINTS = 3;
+/** No voice token for a call created longer ago than this. */
+export const TOKEN_WINDOW_MINUTES = 60;
+/** Debrief runs per call: the automatic one plus two retries. */
+export const MAX_DEBRIEF_ATTEMPTS = 3;
+/** Total characters of transcript accepted when a call ends. */
+export const MAX_TRANSCRIPT_CHARS = 60_000;
 
 /** Midnight at the start of `now`'s day in Europe/London, as an instant. */
 export function startOfLondonDay(now: Date): Date {
@@ -86,48 +94,62 @@ export async function startCall(actor: Actor, practiceScenarioId: string, now = 
     returning id
   `);
   if (!row) {
-    return fail('limit', `You have started ${limit} calls today, which is the daily limit. You can practise again tomorrow.`);
+    const calls = limit === 1 ? '1 call' : `${limit} calls`;
+    return fail('limit', `You have started ${calls} today, which is the daily limit. You can practise again tomorrow.`);
   }
   return { ok: true, sessionId: row.id };
 }
 
 /**
- * Marks the actor's own unfinished call as in progress so the route can mint a voice token, and
- * returns the snapshot to build the caller from. Refused once the call has ended or has run past
- * the maximum call length, so one session cannot be reused for more call time.
+ * Counts a voice token for the actor's own unfinished call (the first one moves it from `created`
+ * to `in_call`) and returns the snapshot to build the caller from. One UPDATE does the check and
+ * the count, so at most 3 tokens are ever minted per call, and none once the call has ended or
+ * more than 60 minutes after it was created.
  */
 export async function claimForToken(actor: Actor, sessionId: string, now = new Date()): Promise<Result<{ snapshot: ScenarioSnapshot }>> {
   assertMember(actor, 'calls.take');
   if (!isUuid(sessionId)) return fail('not_found', NOT_FOUND);
-  const earliestStart = new Date(now.getTime() - maxCallSeconds() * 1000);
+  const createdAfter = new Date(now.getTime() - TOKEN_WINDOW_MINUTES * 60_000);
   const [row] = await getDb()
     .update(sessions)
-    .set({ status: 'in_call' })
+    .set({ status: 'in_call', tokenMints: sql`${sessions.tokenMints} + 1` })
     .where(
       and(
         eq(sessions.id, sessionId),
         ownedBy(actor),
         inArray(sessions.status, ['created', 'in_call']),
-        sql`${sessions.startedAt} > ${earliestStart.toISOString()}::timestamptz`,
+        sql`${sessions.tokenMints} < ${MAX_TOKEN_MINTS}`,
+        sql`${sessions.startedAt} > ${createdAfter.toISOString()}::timestamptz`,
       ),
     )
     .returning({ snapshot: sessions.scenarioSnapshot });
   if (row?.snapshot) return { ok: true, snapshot: row.snapshot };
-  const [exists] = await getDb().select({ id: sessions.id }).from(sessions).where(and(eq(sessions.id, sessionId), ownedBy(actor)));
-  return exists ? fail('conflict', 'This call has already ended. Start a new call.') : fail('not_found', NOT_FOUND);
+  const [current] = await getDb()
+    .select({ status: sessions.status, tokenMints: sessions.tokenMints })
+    .from(sessions)
+    .where(and(eq(sessions.id, sessionId), ownedBy(actor)));
+  if (!current) return fail('not_found', NOT_FOUND);
+  if (current.status !== 'created' && current.status !== 'in_call') return fail('conflict', 'This call has already ended. Start a new call.');
+  if (current.tokenMints >= MAX_TOKEN_MINTS) return fail('conflict', 'This call cannot be reconnected again. Start a new call.');
+  return fail('conflict', 'This call was set up more than an hour ago. Start a new call.');
 }
 
-export const endCallBodySchema = z.object({
-  durationSeconds: z.number().min(0).max(3600),
-  turns: z
-    .array(
-      z.object({
-        speaker: z.enum(['trainee', 'patient']),
-        text: z.string().trim().min(1).max(4000),
-      }),
-    )
-    .max(400),
-});
+export const endCallBodySchema = z
+  .object({
+    durationSeconds: z.number().min(0).max(3600),
+    turns: z
+      .array(
+        z.object({
+          speaker: z.enum(['trainee', 'patient']),
+          text: z.string().trim().min(1).max(4000),
+        }),
+      )
+      .max(400),
+  })
+  .refine(b => b.turns.reduce((n, t) => n + t.text.length, 0) <= MAX_TRANSCRIPT_CHARS, {
+    message: `The transcript is longer than ${MAX_TRANSCRIPT_CHARS} characters.`,
+    path: ['turns'],
+  });
 export type EndCallBody = z.infer<typeof endCallBodySchema>;
 
 export type EndCallOutcome = {
@@ -138,8 +160,11 @@ export type EndCallOutcome = {
 
 /**
  * Saves the transcript when the actor's own call ends. The call is claimed with one UPDATE so a
- * repeated request cannot save it twice. A call under 20 seconds, or where the trainee never
- * spoke, is recorded as a fail with a score of 0 and no debrief is run. Audio is never stored.
+ * repeated request cannot save it twice. Only a call that actually connected (`in_call`, i.e. a
+ * voice token was minted) can go on to a debrief: ending a call still in `created` records it as
+ * too short whatever the body says, and keeps no transcript. A call under 20 seconds, or where the
+ * trainee never spoke, is recorded as a fail with a score of 0 and no debrief is run.
+ * Audio is never stored.
  */
 export async function endCall(actor: Actor, sessionId: string, body: unknown, now = new Date()): Promise<Result<EndCallOutcome>> {
   assertMember(actor, 'calls.take');
@@ -157,18 +182,24 @@ export async function endCall(actor: Actor, sessionId: string, body: unknown, no
 
   // The browser's clock is not trusted beyond the time the session has existed.
   const sinceStart = Math.max(0, (now.getTime() - current.startedAt.getTime()) / 1000);
-  const durationSeconds = Math.round(Math.min(parsed.data.durationSeconds, sinceStart));
-  const tooShort = durationSeconds < MIN_CALL_SECONDS || !turns.some(t => t.speaker === 'trainee');
+  if (current.status !== 'created' && current.status !== 'in_call') return { ok: true, status: current.status, needsDebrief: false };
+  const connected = current.status === 'in_call';
+  const durationSeconds = connected ? Math.round(Math.min(parsed.data.durationSeconds, sinceStart)) : 0;
+  const tooShort = !connected || durationSeconds < MIN_CALL_SECONDS || !turns.some(t => t.speaker === 'trainee');
   const status: SessionStatus = tooShort ? 'too_short' : 'debriefing';
 
+  // Claimed only from the status read above, so a token minted in between cannot be skipped over.
   const [claimed] = await db
     .update(sessions)
-    .set({ status, endedAt: now, durationSeconds })
-    .where(and(eq(sessions.id, sessionId), ownedBy(actor), inArray(sessions.status, ['created', 'in_call'])))
+    .set({ status, endedAt: now, durationSeconds, ...(tooShort ? {} : { debriefAttempts: 1 }) })
+    .where(and(eq(sessions.id, sessionId), ownedBy(actor), eq(sessions.status, current.status)))
     .returning({ id: sessions.id });
-  if (!claimed) return { ok: true, status: current.status, needsDebrief: false };
+  if (!claimed) {
+    const [after] = await db.select({ status: sessions.status }).from(sessions).where(and(eq(sessions.id, sessionId), ownedBy(actor)));
+    return { ok: true, status: after?.status ?? current.status, needsDebrief: false };
+  }
 
-  if (turns.length > 0) {
+  if (connected && turns.length > 0) {
     await db.insert(transcriptTurns).values(turns.map((t, i) => ({ sessionId, speaker: t.speaker, text: t.text, sequence: i })));
   }
   if (tooShort) {
@@ -209,6 +240,8 @@ export type CallSession = {
   startedAt: Date;
   endedAt: Date | null;
   durationSeconds: number | null;
+  /** How many more times a failed debrief can be tried again (0 once used up). */
+  debriefRetriesLeft: number;
 };
 
 /** A call the actor made, or any call in their practice for a manager. Null otherwise. */
@@ -226,12 +259,20 @@ export async function getSession(actor: Actor, sessionId: string): Promise<CallS
       startedAt: sessions.startedAt,
       endedAt: sessions.endedAt,
       durationSeconds: sessions.durationSeconds,
+      debriefAttempts: sessions.debriefAttempts,
     })
     .from(sessions)
     .innerJoin(users, eq(users.id, sessions.userId))
     .where(and(eq(sessions.id, sessionId), viewableBy(actor)));
   if (!row || !row.userId || !row.scenario) return null;
-  return { ...row, userId: row.userId, scenario: row.scenario, isOwn: row.userId === actor.userId };
+  const { debriefAttempts, ...rest } = row;
+  return {
+    ...rest,
+    userId: row.userId,
+    scenario: row.scenario,
+    isOwn: row.userId === actor.userId,
+    debriefRetriesLeft: Math.max(0, MAX_DEBRIEF_ATTEMPTS - debriefAttempts),
+  };
 }
 
 export type SessionListItem = {
@@ -370,14 +411,24 @@ export async function markDebriefFailed(actor: Actor, sessionId: string): Promis
     .where(and(eq(sessions.id, sessionId), ownedBy(actor), eq(sessions.status, 'debriefing')));
 }
 
-/** Moves the actor's own failed debrief back to "debriefing" so it can be tried again. True if claimed. */
+/**
+ * Moves the actor's own failed debrief back to "debriefing" so it can be tried again, at most
+ * twice after the automatic run (`MAX_DEBRIEF_ATTEMPTS` in all). True if claimed.
+ */
 export async function claimDebriefRetry(actor: Actor, sessionId: string): Promise<boolean> {
   assertMember(actor, 'calls.take');
   if (!isUuid(sessionId)) return false;
   const rows = await getDb()
     .update(sessions)
-    .set({ status: 'debriefing' })
-    .where(and(eq(sessions.id, sessionId), ownedBy(actor), eq(sessions.status, 'failed')))
+    .set({ status: 'debriefing', debriefAttempts: sql`${sessions.debriefAttempts} + 1` })
+    .where(
+      and(
+        eq(sessions.id, sessionId),
+        ownedBy(actor),
+        eq(sessions.status, 'failed'),
+        sql`${sessions.debriefAttempts} < ${MAX_DEBRIEF_ATTEMPTS}`,
+      ),
+    )
     .returning({ id: sessions.id });
   return rows.length === 1;
 }
