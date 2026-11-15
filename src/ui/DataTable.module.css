@@ -1,0 +1,78 @@
+.scroll {
+  overflow-x: auto;
+  border: 2px solid var(--line);
+  border-radius: var(--radius-m);
+  background: var(--paper);
+}
+
+.table {
+  width: 100%;
+  min-width: 40rem;
+  border-collapse: collapse;
+  background: var(--paper);
+  font-size: var(--text-base);
+}
+
+.caption {
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+  font-weight: bold;
+  font-size: var(--text-m);
+  border-bottom: 2px solid var(--line);
+}
+
+.captionHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.th,
+.cell {
+  padding: var(--space-3) var(--space-4);
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: middle;
+  line-height: 1.35;
+}
+
+.th {
+  background: #e4ebef;
+  border-bottom: 2px solid var(--edge);
+  font-size: var(--text-s);
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.rowHeader {
+  background: transparent;
+  font-weight: bold;
+}
+
+.numeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+.table tbody tr:last-child > * {
+  border-bottom: 0;
+}
+
+.table tbody tr:hover > * {
+  background: var(--brand-tint);
+}
+
+.empty {
+  padding: var(--space-6) var(--space-4);
+  text-align: center;
+  color: var(--muted);
+}

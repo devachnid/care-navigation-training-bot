@@ -1,0 +1,39 @@
+.card {
+  display: grid;
+  gap: var(--space-3);
+  align-content: start;
+  padding: var(--space-5);
+  border: 2px solid var(--line);
+  border-radius: var(--radius-l);
+  background: var(--paper);
+}
+
+.quiet {
+  background: var(--wash);
+  border-color: transparent;
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--text-l);
+  line-height: 1.25;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.card > p {
+  margin: 0;
+}

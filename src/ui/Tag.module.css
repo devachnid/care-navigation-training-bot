@@ -1,0 +1,41 @@
+.tag {
+  display: inline-block;
+  padding: 0.125rem 0.75rem;
+  border: 2px solid var(--tag-edge, transparent);
+  border-radius: var(--radius-pill);
+  background: var(--tag-bg);
+  color: var(--tag-ink, var(--ink));
+  font-size: var(--text-s);
+  font-weight: bold;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.neutral {
+  --tag-bg: #e4ebef;
+}
+.easy {
+  --tag-bg: var(--go-tint);
+  --tag-edge: var(--go);
+}
+.medium {
+  --tag-bg: #ffe9a8;
+  --tag-edge: var(--warn-edge);
+}
+.hard {
+  --tag-bg: #fbd9d6;
+  --tag-edge: var(--stop);
+}
+/* Draft is outlined and plain; approved is solid. The difference is not only colour. */
+.draft {
+  --tag-bg: var(--paper);
+  --tag-edge: var(--edge);
+}
+.approved {
+  --tag-bg: var(--go);
+  --tag-ink: #fff;
+}
+.unsafe {
+  --tag-bg: var(--stop);
+  --tag-ink: #fff;
+}

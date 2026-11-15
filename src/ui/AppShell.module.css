@@ -1,0 +1,163 @@
+.shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.header {
+  background: var(--paper);
+  border-bottom: 2px solid var(--line);
+}
+
+.bar {
+  background: var(--ink);
+  color: #fff;
+}
+
+/* Header content and page content share one width and gutter. */
+.bar,
+.nav,
+.footerInner {
+  padding-left: max(var(--space-4), calc((100% - var(--page-width)) / 2));
+  padding-right: max(var(--space-4), calc((100% - var(--page-width)) / 2));
+}
+
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-6);
+  padding-top: var(--space-2);
+  padding-bottom: var(--space-2);
+}
+
+.brand {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--space-4);
+  margin: 0;
+}
+
+.product {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  color: #fff;
+  font-size: var(--text-m);
+  font-weight: bold;
+  text-decoration: none;
+}
+.product:hover {
+  text-decoration: underline;
+}
+
+.practice {
+  color: #dbe4ea;
+}
+
+.account {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--space-5);
+  font-size: var(--text-base);
+}
+
+.account form {
+  margin: 0;
+}
+
+.userLabel {
+  color: #dbe4ea;
+}
+
+.accountLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #fff;
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+.accountLink:hover {
+  text-decoration-thickness: 3px;
+}
+
+.nav {
+  background: var(--paper);
+}
+
+.navList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.navLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 3.25rem;
+  /* Reserve the underline's height so the current item does not shift its neighbours. */
+  margin-bottom: -2px;
+  border-bottom: 0.3125rem solid transparent;
+  color: var(--ink);
+  font-size: var(--text-m);
+  text-decoration: none;
+}
+.navLink:hover {
+  border-bottom-color: var(--edge);
+}
+.navCurrent,
+.navCurrent:hover {
+  border-bottom-color: var(--brand);
+  color: var(--brand);
+  font-weight: bold;
+}
+
+.main {
+  flex: 1;
+  width: 100%;
+  max-width: var(--page-width);
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-4) var(--space-8);
+}
+.main:focus {
+  outline: none;
+}
+
+.footer {
+  border-top: 2px solid var(--line);
+  background: var(--paper);
+  color: var(--muted);
+  font-size: var(--text-s);
+}
+
+.footerInner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-6);
+  padding-top: var(--space-3);
+  padding-bottom: var(--space-3);
+}
+
+.footerInner p {
+  margin: 0;
+}
+
+.footerInner a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+}
