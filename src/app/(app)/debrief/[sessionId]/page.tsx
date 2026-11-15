@@ -7,6 +7,7 @@ import { getDebrief, getSession, getTurns } from '@/sessions/dal';
 import { Alert, Button, Card, DataTable, PageHeader, Section, Stat, StatGroup, SubmitButton } from '@/ui';
 import { formatDate, formatDateTime, formatDuration } from '@/app/_lib/dates';
 import { requireAbility } from '@/app/_lib/guard';
+import { LATEST_RESULT } from '@/app/_lib/labels';
 import stack from '@/app/_lib/stack.module.css';
 import { retryDebriefAction } from './actions';
 import styles from './debrief.module.css';
@@ -124,6 +125,17 @@ export default async function DebriefPage({ params }: { params: Promise<{ sessio
         <>
           <Section title="Result">
             <StatGroup label="Result of this call">
+              <Stat
+                label="Result"
+                value={LATEST_RESULT[debrief.unsafeOutcome ? 'unsafe' : debrief.outcomeCorrect ? 'passed' : 'not_yet'].label}
+                note={
+                  debrief.unsafeOutcome
+                    ? 'The caller was left at risk.'
+                    : debrief.outcomeCorrect
+                      ? 'The caller was sent to the right place.'
+                      : 'The caller was not sent to the right place.'
+                }
+              />
               <Stat label="Score" value={`${debrief.overallScore}%`} />
               <Stat label="Outcome correct" value={debrief.outcomeCorrect ? 'Yes' : 'No'} />
               {debrief.redFlagHandled !== null && <Stat label="Red flag handled" value={debrief.redFlagHandled ? 'Yes' : 'No'} />}
