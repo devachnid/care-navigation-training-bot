@@ -9,9 +9,19 @@ import { cleanName, isPlausibleEmail, normaliseEmail } from './email';
 import { checkPasswordPolicy, hashPassword } from './password';
 import { createSession, type NewSession } from './sessions';
 import { safeEqual } from './safe-equal';
+import { countSetupAttempt } from './throttle';
 
-/** `/setup` works only while there are no users at all. */
+/** The setup code must be at least this long, or setup stays closed. */
+export const SETUP_CODE_MIN = 20;
+
+const configuredCode = (): string | null => {
+  const code = process.env.SETUP_CODE ?? '';
+  return code.length >= SETUP_CODE_MIN ? code : null;
+};
+
+/** `/setup` works only while there are no users at all and a long enough `SETUP_CODE` is set. */
 export async function isSetupOpen(): Promise<boolean> {
+  if (!configuredCode()) return false;
   const [row] = await queryRows<{ open: boolean }>(sql`select not exists (select 1 from ${users}) as open`);
   return row?.open === true;
 }
@@ -29,15 +39,20 @@ const CLOSED = 'Setup has already been done. Sign in instead.';
 
 /**
  * First run: creates the platform admin, the first practice and that person's manager membership,
- * then signs them in. Needs the `SETUP_CODE` env value and an empty `users` table.
+ * then signs them in. Needs the `SETUP_CODE` env value (at least 20 characters) and an empty
+ * `users` table. Attempts are throttled (5 per 15 minutes, all callers together).
  *
  * The admin is inserted with one `INSERT ... SELECT ... WHERE NOT EXISTS (users)` guarded by a
  * transaction-scoped advisory lock, so two simultaneous setups cannot both create an admin.
  */
 export async function runSetup(input: SetupInput): Promise<Result<NewSession>> {
-  const expected = process.env.SETUP_CODE ?? '';
-  if (!expected) return fail('conflict', 'Setup is not switched on. Whoever deploys this app needs to set SETUP_CODE.');
+  const expected = configuredCode();
+  if (!expected) {
+    return fail('conflict', `Setup is not switched on. Whoever deploys this app needs to set SETUP_CODE (at least ${SETUP_CODE_MIN} characters).`);
+  }
   if (!(await isSetupOpen())) return fail('conflict', CLOSED);
+  // Counted before the code is compared, under one fixed key: 5 tries per 15 minutes in total.
+  if (!(await countSetupAttempt())) return fail('limit', 'Too many setup attempts. Wait 15 minutes and try again.');
   if (!safeEqual(input.setupCode.trim(), expected)) return fail('invalid', 'That setup code is not right. Check it and try again.');
 
   const email = normaliseEmail(input.email);

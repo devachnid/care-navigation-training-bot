@@ -1,40 +1,43 @@
-import { inArray, lt, sql } from 'drizzle-orm';
+import { eq, lt, sql } from 'drizzle-orm';
 import { getDb } from '@/db/client';
 import { authThrottle } from '@/db/schema';
 
 export const THROTTLE_WINDOW_MS = 15 * 60_000;
-export const EMAIL_LIMIT = 8;
+/** Attempts per email and IP together (or per email alone when there is no IP). */
+export const PAIR_LIMIT = 8;
+/** Backstop per email, whatever the IP: stops guessing spread across many addresses. */
+export const EMAIL_LIMIT = 100;
+/** Attempts per IP, whatever the email. */
 export const IP_LIMIT = 30;
+/** Wrong setup codes, under one fixed key. */
+export const SETUP_LIMIT = 5;
 
-export const emailKey = (email: string) => `email:${email}`;
-export const ipKey = (ip: string) => `ip:${ip}`;
+type Key = { key: string; limit: number };
 
-const limitFor = (key: string) => (key.startsWith('ip:') ? IP_LIMIT : EMAIL_LIMIT);
+const pairKey = (email: string, ip: string | null) => `pair:${email}|${ip ?? ''}`;
 
-function keysFor(email: string, ip: string | null): string[] {
-  return ip ? [emailKey(email), ipKey(ip)] : [emailKey(email)];
-}
-
-/** True if either the email or the IP has had too many failed sign-ins in the current window. */
-export async function isThrottled(email: string, ip: string | null, now = new Date()): Promise<boolean> {
-  const cutoff = new Date(now.getTime() - THROTTLE_WINDOW_MS);
-  const rows = await getDb()
-    .select()
-    .from(authThrottle)
-    .where(inArray(authThrottle.key, keysFor(email, ip)));
-  return rows.some(r => r.windowStartedAt > cutoff && r.count >= limitFor(r.key));
+function signInKeys(email: string, ip: string | null): Key[] {
+  const keys: Key[] = [
+    { key: pairKey(email, ip), limit: PAIR_LIMIT },
+    { key: `email:${email}`, limit: EMAIL_LIMIT },
+  ];
+  if (ip) keys.push({ key: `ip:${ip}`, limit: IP_LIMIT });
+  return keys;
 }
 
 /**
- * Counts one failed sign-in against the email and the IP. Each key is one atomic upsert: a new
- * window starts when the old one has run out, otherwise the count goes up.
+ * Counts one attempt against each key and says whether every key is still within its limit.
+ * Each key is one atomic upsert returning the new count (a new window starts when the old one has
+ * run out), so concurrent attempts cannot all slip under the limit: the count comes first, the
+ * expensive check after.
  */
-export async function recordFailedSignIn(email: string, ip: string | null, now = new Date()): Promise<void> {
+async function countAttempt(keys: Key[], now: Date): Promise<boolean> {
   const db = getDb();
   const cutoff = new Date(now.getTime() - THROTTLE_WINDOW_MS);
   const expired = sql`${authThrottle.windowStartedAt} <= ${cutoff.toISOString()}::timestamptz`;
-  for (const key of keysFor(email, ip)) {
-    await db
+  let allowed = true;
+  for (const { key, limit } of keys) {
+    const [row] = await db
       .insert(authThrottle)
       .values({ key, count: 1, windowStartedAt: now })
       .onConflictDoUpdate({
@@ -43,13 +46,26 @@ export async function recordFailedSignIn(email: string, ip: string | null, now =
           count: sql`case when ${expired} then 1 else ${authThrottle.count} + 1 end`,
           windowStartedAt: sql`case when ${expired} then ${now.toISOString()}::timestamptz else ${authThrottle.windowStartedAt} end`,
         },
-      });
+      })
+      .returning({ count: authThrottle.count });
+    if (!row || row.count > limit) allowed = false;
   }
   // Housekeeping: windows that ended a day ago are of no use.
   await db.delete(authThrottle).where(lt(authThrottle.windowStartedAt, new Date(now.getTime() - 86_400_000)));
+  return allowed;
 }
 
-/** After a successful sign-in the email's count starts again. The IP's does not. */
-export async function clearEmailThrottle(email: string): Promise<void> {
-  await getDb().delete(authThrottle).where(inArray(authThrottle.key, [emailKey(email)]));
+/** Call before checking a password. False means refuse, with the same message as a wrong password. */
+export async function countSignInAttempt(email: string, ip: string | null, now = new Date()): Promise<boolean> {
+  return countAttempt(signInKeys(email, ip), now);
+}
+
+/** After a successful sign-in the email-and-IP count starts again. The email backstop and IP counts do not. */
+export async function clearSignInAttempts(email: string, ip: string | null): Promise<void> {
+  await getDb().delete(authThrottle).where(eq(authThrottle.key, pairKey(email, ip)));
+}
+
+/** Call before checking a setup code. False means refuse. */
+export async function countSetupAttempt(now = new Date()): Promise<boolean> {
+  return countAttempt([{ key: 'setup', limit: SETUP_LIMIT }], now);
 }

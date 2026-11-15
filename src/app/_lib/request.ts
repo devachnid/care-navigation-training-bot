@@ -1,8 +1,12 @@
 import 'server-only';
 import { headers } from 'next/headers';
+import { ipFromHeaders } from '@/auth/client-ip';
 
-/** The caller's IP: the first entry of `x-forwarded-for` (set by Vercel), or null (local development). */
+/**
+ * The caller's IP for throttling, or null (local development). Taken from the header the hosting
+ * platform sets itself (`x-vercel-forwarded-for`, then `x-real-ip`), and only then from the first
+ * `x-forwarded-for` entry, which a client can forge. See `ipFromHeaders`.
+ */
 export async function clientIp(): Promise<string | null> {
-  const first = (await headers()).get('x-forwarded-for')?.split(',')[0]?.trim();
-  return first ? first.slice(0, 64) : null;
+  return ipFromHeaders(await headers());
 }

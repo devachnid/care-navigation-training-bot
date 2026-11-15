@@ -24,6 +24,6 @@ type FormState = { errors?: Record<string, string>; message?: string; values?: R
 
 ## Other
 
-- `request.ts`: `clientIp()` (first `x-forwarded-for` entry).
+- `request.ts`: `clientIp()` (the platform's `x-vercel-forwarded-for`, then `x-real-ip`, then the first `x-forwarded-for` entry; see `src/auth/client-ip.ts`).
 - `session-actions.ts`: `signOutAction` for the `AppShell` form.
 - `privacy-checkbox.tsx`, `not-found-content.tsx`, `error-content.tsx`: shared bits.

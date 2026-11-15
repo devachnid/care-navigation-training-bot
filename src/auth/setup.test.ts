@@ -3,6 +3,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { getDb } from '@/db/client';
 import { practiceScenarios, users } from '@/db/schema';
 import { createTestDb, truncateAll } from '@/test/db';
+import { SETUP_LIMIT } from './throttle';
 import { seedLibrary } from '@/test/fixtures';
 import { loadActor } from './sessions';
 import { isSetupOpen, runSetup, type SetupInput } from './setup';
@@ -13,14 +14,16 @@ beforeAll(async () => {
 beforeEach(async () => {
   await truncateAll(getDb());
   await seedLibrary();
-  process.env.SETUP_CODE = 'first-run-code';
+  process.env.SETUP_CODE = CODE;
 });
 afterEach(() => {
   delete process.env.SETUP_CODE;
 });
 
+const CODE = 'first-run-code-that-is-long-enough';
+
 const input: SetupInput = {
-  setupCode: 'first-run-code',
+  setupCode: CODE,
   name: 'Rhian Morgan',
   email: 'Rhian@Example.com',
   password: 'llanelli harbour wall',
@@ -51,8 +54,23 @@ describe('first-run setup', () => {
   it('needs SETUP_CODE set and matched', async () => {
     delete process.env.SETUP_CODE;
     expect(await runSetup(input)).toMatchObject({ ok: false, code: 'conflict' });
-    process.env.SETUP_CODE = 'first-run-code';
+    process.env.SETUP_CODE = CODE;
     expect(await runSetup({ ...input, setupCode: 'guess' })).toMatchObject({ ok: false, code: 'invalid' });
+    expect(await isSetupOpen()).toBe(true);
+  });
+
+  it('stays closed while SETUP_CODE is shorter than 20 characters', async () => {
+    process.env.SETUP_CODE = 'short-code-19-chars';
+    expect(process.env.SETUP_CODE.length).toBe(19);
+    expect(await isSetupOpen()).toBe(false);
+    expect(await runSetup({ ...input, setupCode: 'short-code-19-chars' })).toMatchObject({ ok: false, code: 'conflict' });
+  });
+
+  it('throttles setup attempts: after 5 in 15 minutes even the right code is refused', async () => {
+    for (let i = 0; i < SETUP_LIMIT; i++) {
+      expect(await runSetup({ ...input, setupCode: `wrong guess number ${i} padded out` })).toMatchObject({ ok: false, code: 'invalid' });
+    }
+    expect(await runSetup(input)).toMatchObject({ ok: false, code: 'limit' });
     expect(await isSetupOpen()).toBe(true);
   });
 

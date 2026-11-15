@@ -4,9 +4,10 @@ import { getDb } from '@/db/client';
 import { auditLog, users } from '@/db/schema';
 import { createTestDb } from '@/test/db';
 import { PASSWORD, addMember, makePractice, makeUser, seedLibrary } from '@/test/fixtures';
+import { TEST_PASSWORD_PARAMS, hashPassword, setPasswordCostForTests, verifyPassword } from './password';
 import { createSession, loadActor } from './sessions';
 import { SIGN_IN_FAILED, changePassword, signIn, signOut } from './sign-in';
-import { EMAIL_LIMIT } from './throttle';
+import { PAIR_LIMIT } from './throttle';
 
 beforeAll(async () => {
   await createTestDb();
@@ -47,16 +48,55 @@ describe('signIn', () => {
 
   it('refuses even the right password once the email is throttled, with the same message', async () => {
     const u = await makeUser();
-    for (let i = 0; i < EMAIL_LIMIT; i++) await signIn({ email: u.email, password: 'wrong password here', ip: null });
+    for (let i = 0; i < PAIR_LIMIT; i++) await signIn({ email: u.email, password: 'wrong password here', ip: null });
     const r = await signIn({ email: u.email, password: PASSWORD, ip: null });
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.error).toBe(SIGN_IN_FAILED);
   });
 
   it('counts failures for unknown emails too', async () => {
-    for (let i = 0; i < EMAIL_LIMIT; i++) await signIn({ email: 'ghost@example.com', password: 'x', ip: null });
+    for (let i = 0; i < PAIR_LIMIT; i++) await signIn({ email: 'ghost@example.com', password: 'x', ip: null });
     const r = await signIn({ email: 'ghost@example.com', password: 'x', ip: null });
     expect(r.ok === false && r.code).toBe('limit');
+  });
+
+  // Security review F4: guesses from elsewhere must not lock the real person out.
+  it('8 wrong guesses from other addresses do not lock the real user out', async () => {
+    const u = await makeUser();
+    for (let i = 0; i < PAIR_LIMIT; i++) await signIn({ email: u.email, password: 'wrong guess number ' + i, ip: `10.0.0.${i}` });
+    expect((await signIn({ email: u.email, password: PASSWORD, ip: '192.168.1.1' })).ok).toBe(true);
+  });
+
+  // Security review F4b: the attempt is counted before the password is checked, so racing requests cannot exceed the limit.
+  it('concurrent guesses cannot get more than 8 password checks per 15 minutes', async () => {
+    const u = await makeUser();
+    const N = 60;
+    const results = await Promise.all(
+      Array.from({ length: N }, (_, i) => signIn({ email: u.email, password: i === N - 1 ? PASSWORD : `wrong guess ${i} xx`, ip: null })),
+    );
+    const checked = results.filter(r => r.ok || r.code === 'invalid').length;
+    expect(checked).toBeLessThanOrEqual(PAIR_LIMIT);
+  });
+
+  it('a successful sign-in clears the count for that email and address', async () => {
+    const u = await makeUser();
+    for (let i = 0; i < PAIR_LIMIT - 1; i++) await signIn({ email: u.email, password: 'wrong password here', ip: '192.0.2.50' });
+    expect((await signIn({ email: u.email, password: PASSWORD, ip: '192.0.2.50' })).ok).toBe(true);
+    for (let i = 0; i < PAIR_LIMIT - 1; i++) await signIn({ email: u.email, password: 'wrong password here', ip: '192.0.2.50' });
+    expect((await signIn({ email: u.email, password: PASSWORD, ip: '192.0.2.50' })).ok).toBe(true);
+  });
+
+  it('rehashes a password stored with older parameters on a successful sign-in only', async () => {
+    setPasswordCostForTests({ N: 2048, r: 8, p: 1 });
+    const old = await hashPassword(PASSWORD);
+    setPasswordCostForTests(TEST_PASSWORD_PARAMS);
+    const u = await makeUser({ passwordHash: old });
+    await signIn({ email: u.email, password: 'wrong password here', ip: null });
+    expect((await getDb().select().from(users).where(eq(users.id, u.id)))[0].passwordHash).toBe(old);
+    expect((await signIn({ email: u.email, password: PASSWORD, ip: null })).ok).toBe(true);
+    const [after] = await getDb().select().from(users).where(eq(users.id, u.id));
+    expect(after.passwordHash!.split('$')[1]).toBe(String(TEST_PASSWORD_PARAMS.N));
+    expect(await verifyPassword(PASSWORD, after.passwordHash)).toBe(true);
   });
 
   it('signs in a user with no membership (platform admin) with no practice', async () => {
