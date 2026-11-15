@@ -1,0 +1,38 @@
+.option {
+  display: grid;
+  gap: var(--space-1);
+  padding-left: 0;
+}
+
+.row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.input {
+  flex: none;
+  width: 1.75rem;
+  height: 1.75rem;
+  margin: 0.4rem 0 0;
+  accent-color: var(--brand);
+  cursor: pointer;
+}
+
+.label {
+  flex: 1;
+  min-height: 2.75rem;
+  padding-top: 0.4rem;
+  cursor: pointer;
+  line-height: 1.35;
+}
+
+.option > p {
+  margin-left: calc(1.75rem + var(--space-3));
+}
+
+.input:disabled,
+.input:disabled + .label {
+  cursor: not-allowed;
+  color: var(--muted);
+}

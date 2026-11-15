@@ -1,0 +1,76 @@
+{
+  "name": "sore-throat-poor",
+  "scenarioId": "sore-throat",
+  "description": "Poor call: no introduction, no questions, books a GP appointment for antibiotics, curt.",
+  "transcript": [
+    {
+      "speaker": "patient",
+      "text": "Hello, is that the surgery? I need an appointment with the doctor please."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Yeah. What is it?"
+    },
+    {
+      "speaker": "patient",
+      "text": "It's a sore throat. I've had it two days and I'd like some antibiotics."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Right. I've got a doctor tomorrow at ten past nine."
+    },
+    {
+      "speaker": "patient",
+      "text": "Oh, lovely, that's quick. Okay."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Name?"
+    },
+    {
+      "speaker": "patient",
+      "text": "Carys Bevan."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Right, you're booked. Bye."
+    }
+  ],
+  "expect": {
+    "outcomeCorrect": false,
+    "unsafeOutcome": false,
+    "redFlagHandled": null,
+    "flagsReason": "A GP appointment is not the correct outcome (pharmacy). The scenario lists no unsafe outcomes and has no red flag.",
+    "scores": {
+      "greeting": {
+        "min": 0,
+        "max": 1,
+        "reason": "No name or practice given; the caller was asked her name only at the end and never asked who the appointment was for. 0 or 1 depending on whether asking the name counts."
+      },
+      "information": {
+        "min": 0,
+        "max": 0,
+        "reason": "Nothing asked that unlocks a hidden fact."
+      },
+      "redFlag": null,
+      "destination": {
+        "score": 0,
+        "reason": "GP appointment where the key says pharmacy."
+      },
+      "role": {
+        "score": 2,
+        "reason": "No clinical advice or diagnosis given."
+      },
+      "explanation": {
+        "min": 0,
+        "max": 1,
+        "reason": "Said when, but not why, and gave no advice if things get worse."
+      },
+      "manner": {
+        "min": 0,
+        "max": 1,
+        "reason": "Curt, no courtesy, call ended abruptly."
+      }
+    }
+  }
+}

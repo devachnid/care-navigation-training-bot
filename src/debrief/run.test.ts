@@ -18,10 +18,25 @@ const base = (over: Partial<DebriefResult> = {}): DebriefResult => ({
 const lines = ['Of course, what is the name please?', "I've used a lot of it lately."];
 
 describe('enforceRules', () => {
-  it('marks a missed red flag as unsafe and the outcome as incorrect, whatever the model said', () => {
-    const r = enforceRules(base(), true, lines);
+  it('marks a missed red flag with the wrong destination as unsafe, whatever the model said', () => {
+    const r = enforceRules(base({ outcomeCorrect: false }), true, lines);
     expect(r.unsafeOutcome).toBe(true);
     expect(r.outcomeCorrect).toBe(false);
+  });
+  it('does not call it unsafe when the red flag was not drawn out but the caller was sent to the right place', () => {
+    const r = enforceRules(base({ outcomeCorrect: true, redFlagHandled: false }), true, lines);
+    expect(r.unsafeOutcome).toBe(false);
+    expect(r.outcomeCorrect).toBe(true);
+  });
+  it('never lets an unsafe outcome count as correct', () => {
+    const r = enforceRules(base({ outcomeCorrect: true, unsafeOutcome: true, redFlagHandled: true }), true, lines);
+    expect(r.outcomeCorrect).toBe(false);
+  });
+  it('keeps at most three points of each kind when the model returns more', () => {
+    const many = Array.from({ length: 5 }, (_, i) => ({ point: `p${i}`, quote: 'what is the name please' }));
+    const r = enforceRules(base({ strengths: many, improvements: many }), true, lines);
+    expect(r.strengths.map(p => p.point)).toEqual(['p0', 'p1', 'p2']);
+    expect(r.improvements).toHaveLength(3);
   });
   it('leaves a handled red flag alone', () => {
     const r = enforceRules(base({ redFlagHandled: true }), true, lines);

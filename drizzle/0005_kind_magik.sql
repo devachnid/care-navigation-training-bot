@@ -1,0 +1,1 @@
+ALTER TABLE "sessions" ADD COLUMN "connected_at" timestamp with time zone;
