@@ -1,0 +1,37 @@
+.notice {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.notice section {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.notice h2 {
+  margin: var(--space-4) 0 0;
+  font-size: var(--text-l);
+  line-height: 1.2;
+}
+
+.notice p,
+.notice ul {
+  margin: 0;
+}
+
+.notice ul {
+  padding-left: var(--space-5);
+  display: grid;
+  gap: var(--space-2);
+}
+
+/* Text the maintainer still has to check. Bold and boxed, so it cannot be missed. */
+.confirm {
+  display: inline-block;
+  padding: 0 var(--space-2);
+  border: 2px solid var(--warn-edge);
+  border-radius: var(--radius-s);
+  background: var(--note-bg);
+  color: var(--ink);
+  font-weight: bold;
+}
