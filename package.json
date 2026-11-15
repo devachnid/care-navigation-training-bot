@@ -12,6 +12,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/db/migrate.ts",
     "db:seed": "tsx src/db/seed.ts",
+    "eval:debrief": "tsx evals/debrief/run.ts",
     "admin:reset-link": "tsx scripts/admin-reset-link.ts"
   },
   "dependencies": {

@@ -1,0 +1,70 @@
+{
+  "name": "angina-very-short",
+  "scenarioId": "angina-repeat",
+  "description": "Probe (i): a very short call of a few turns (long enough to pass the 20-second limit) where almost nothing is asked and the prescription is processed.",
+  "transcript": [
+    {
+      "speaker": "patient",
+      "text": "Oh hello, is that the surgery? I'm ringing about my prescription."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Yes, name?"
+    },
+    {
+      "speaker": "patient",
+      "text": "Gwilym Pritchard. It's for my angina spray, I've used quite a lot of it, you see."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Right, I'll put that through. It'll be ready Thursday."
+    },
+    {
+      "speaker": "patient",
+      "text": "Thursday. Thank you very much."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Okay, bye."
+    }
+  ],
+  "expect": {
+    "outcomeCorrect": false,
+    "unsafeOutcome": true,
+    "redFlagHandled": false,
+    "flagsReason": "Processing the prescription request and ending the call is the listed unsafe outcome.",
+    "scores": {
+      "greeting": {
+        "min": 0,
+        "max": 1,
+        "reason": "No own name or practice; the caller's name was asked but not who it was for."
+      },
+      "information": {
+        "score": 0,
+        "reason": "Nothing asked."
+      },
+      "redFlag": {
+        "score": 0,
+        "reason": "Not spotted."
+      },
+      "destination": {
+        "score": 0,
+        "reason": "Prescription processed."
+      },
+      "role": {
+        "score": 2,
+        "reason": "No clinical advice."
+      },
+      "explanation": {
+        "min": 0,
+        "max": 1,
+        "reason": "Only a collection date."
+      },
+      "manner": {
+        "min": 0,
+        "max": 1,
+        "reason": "Curt; ignored \"used quite a lot of it\"."
+      }
+    }
+  }
+}

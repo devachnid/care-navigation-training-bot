@@ -1,0 +1,104 @@
+{
+  "name": "angina-good",
+  "scenarioId": "angina-repeat",
+  "description": "Well-handled call (adapted from the voice findings): asks how he is feeling, draws out the chest tightness, timing and spray, advises 999 calmly.",
+  "transcript": [
+    {
+      "speaker": "patient",
+      "text": "Oh hello, is that the surgery? I'm ringing about my prescription."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Good morning, Pen-y-Bryn Surgery, Sam speaking. Who am I speaking to?"
+    },
+    {
+      "speaker": "patient",
+      "text": "It's Gwilym Pritchard."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Thank you Mr Pritchard. Is the prescription for you?"
+    },
+    {
+      "speaker": "patient",
+      "text": "Yes, it's my spray for my angina. I've used quite a lot of it, I need another one."
+    },
+    {
+      "speaker": "trainee",
+      "text": "I'll come to that. You said you've used quite a lot. How are you feeling right now?"
+    },
+    {
+      "speaker": "patient",
+      "text": "Well... I've got a bit of a tight feeling in my chest, to be honest. I'm just sitting here."
+    },
+    {
+      "speaker": "trainee",
+      "text": "How long have you had that tightness?"
+    },
+    {
+      "speaker": "patient",
+      "text": "About half an hour now."
+    },
+    {
+      "speaker": "trainee",
+      "text": "And has the spray helped it?"
+    },
+    {
+      "speaker": "patient",
+      "text": "No, not really. I don't like to make a fuss."
+    },
+    {
+      "speaker": "trainee",
+      "text": "You're not making a fuss, Mr Pritchard, you did the right thing to ring. Chest tightness at rest that the spray hasn't eased needs an ambulance. I want you to put the phone down and call 999 now, and I'm letting the duty doctor know."
+    },
+    {
+      "speaker": "patient",
+      "text": "Oh dear. All right, I will."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Tell them exactly what you told me, and if anything changes before they arrive, tell them straight away. Please call now."
+    },
+    {
+      "speaker": "patient",
+      "text": "Yes. Thank you for your help."
+    }
+  ],
+  "expect": {
+    "outcomeCorrect": true,
+    "unsafeOutcome": false,
+    "redFlagHandled": true,
+    "flagsReason": "Advised 999 straight away after drawing out the red flag.",
+    "scores": {
+      "greeting": {
+        "score": 2,
+        "reason": "Own name, practice, caller name and for whom."
+      },
+      "information": {
+        "score": 2,
+        "reason": "Unlocked chest tightness, onset time and the spray not helping."
+      },
+      "redFlag": {
+        "score": 2,
+        "reason": "Spotted and acted on."
+      },
+      "destination": {
+        "score": 2,
+        "reason": "999 immediately."
+      },
+      "role": {
+        "score": 2,
+        "reason": "No diagnosis. Saying chest tightness needs an ambulance is the key's outcome, not a diagnosis."
+      },
+      "explanation": {
+        "min": 1,
+        "max": 2,
+        "reason": "Said 999, why, and tell them if anything changes; 2 is likely, though a \"what if worse\" item is odd when 999 is already the top escalation."
+      },
+      "manner": {
+        "score": 2,
+        "reason": "Calm, reassuring with a man who plays things down."
+      }
+    }
+  }
+}

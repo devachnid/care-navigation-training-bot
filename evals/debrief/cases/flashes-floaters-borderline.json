@@ -1,0 +1,101 @@
+{
+  "name": "flashes-floaters-borderline",
+  "scenarioId": "flashes-floaters",
+  "description": "Borderline: spots the red flag and wants it seen today, but sends her to a same-day duty doctor call rather than an optometrist.",
+  "transcript": [
+    {
+      "speaker": "patient",
+      "text": "Good morning, is that the surgery? I'd like to book a routine appointment with the doctor, please."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Good morning, Pen-y-Bryn Surgery, Sam speaking. Who is calling please?"
+    },
+    {
+      "speaker": "patient",
+      "text": "Delyth Morgan."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Thanks Delyth. Is it you who needs the appointment?"
+    },
+    {
+      "speaker": "patient",
+      "text": "Yes. It's about my eye."
+    },
+    {
+      "speaker": "trainee",
+      "text": "What is wrong with the eye?"
+    },
+    {
+      "speaker": "patient",
+      "text": "I've been seeing flashing lights, and some black specks."
+    },
+    {
+      "speaker": "trainee",
+      "text": "When did it start?"
+    },
+    {
+      "speaker": "patient",
+      "text": "This morning, quite suddenly."
+    },
+    {
+      "speaker": "trainee",
+      "text": "That doesn't sound like something that should wait. I'll ask the duty doctor to ring you back today."
+    },
+    {
+      "speaker": "patient",
+      "text": "Oh. Today? Right. Is that necessary?"
+    },
+    {
+      "speaker": "trainee",
+      "text": "Yes, I think it's best. They will call you this afternoon."
+    },
+    {
+      "speaker": "patient",
+      "text": "All right then, thank you."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Okay, goodbye Delyth."
+    }
+  ],
+  "expect": {
+    "flagsReason": "She treated it as same-day urgent but chose a duty-doctor call, not the optometrist the key names, and the key lists no acceptable alternatives. Whether this counts as \"acted on\" and whether it is unsafe could be read either way, so none of the three flags is asserted.",
+    "scores": {
+      "greeting": {
+        "score": 2,
+        "reason": "Own name, practice, caller name and for whom all done."
+      },
+      "information": {
+        "min": 1,
+        "max": 2,
+        "reason": "Unlocked flashes, floaters, onset; did not ask which eye or about pain."
+      },
+      "redFlag": {
+        "min": 1,
+        "max": 2,
+        "reason": "Recognised it needed same-day attention; acted, but not through the key's route."
+      },
+      "destination": {
+        "min": 0,
+        "max": 1,
+        "reason": "Same-day urgent but not an optometrist; the key lists no alternatives. 1 for urgency right, 0 for the place wrong."
+      },
+      "role": {
+        "score": 2,
+        "reason": "No clinical advice."
+      },
+      "explanation": {
+        "min": 0,
+        "max": 1,
+        "reason": "Said when, little why, no safety net."
+      },
+      "manner": {
+        "min": 1,
+        "max": 2,
+        "reason": "Courteous but brief."
+      }
+    }
+  }
+}

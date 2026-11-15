@@ -1,0 +1,97 @@
+{
+  "name": "sore-throat-no-safety-net",
+  "scenarioId": "sore-throat",
+  "description": "Probe (c): correct destination with the reason, everything else done, but no word about what to do if things get worse.",
+  "transcript": [
+    {
+      "speaker": "patient",
+      "text": "Hello, is that the surgery? I need an appointment with the doctor please."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Good morning, Pen-y-Bryn Surgery, Sam speaking. Who am I speaking to?"
+    },
+    {
+      "speaker": "patient",
+      "text": "Carys Bevan."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Thank you Carys. Is the appointment for you?"
+    },
+    {
+      "speaker": "patient",
+      "text": "Yes. I've had a sore throat for two days and I'd like antibiotics."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Can you swallow drinks and food all right?"
+    },
+    {
+      "speaker": "patient",
+      "text": "Yes, no problem swallowing."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Any difficulty breathing?"
+    },
+    {
+      "speaker": "patient",
+      "text": "No."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Do you have any long-term conditions, or take regular medicines?"
+    },
+    {
+      "speaker": "patient",
+      "text": "No."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Thank you. The right place for a sore throat is the pharmacy. The pharmacist can check your throat and give you treatment if you need it, and there's no appointment needed."
+    },
+    {
+      "speaker": "patient",
+      "text": "Okay. Thanks."
+    },
+    {
+      "speaker": "trainee",
+      "text": "No problem. Bye Carys."
+    }
+  ],
+  "expect": {
+    "outcomeCorrect": true,
+    "unsafeOutcome": false,
+    "redFlagHandled": null,
+    "flagsReason": "Pharmacy matches the key. The missing safety net costs marks on explanation only; outcomeCorrect is about the destination.",
+    "scores": {
+      "greeting": {
+        "score": 2,
+        "reason": "Own name, practice, caller's name and for whom all done."
+      },
+      "information": {
+        "score": 2,
+        "reason": "All three hidden facts unlocked."
+      },
+      "redFlag": null,
+      "destination": {
+        "score": 2,
+        "reason": "Pharmacy."
+      },
+      "role": {
+        "score": 2,
+        "reason": "No clinical advice."
+      },
+      "explanation": {
+        "score": 1,
+        "reason": "Where and why given; the third element in the guide, what to do if things get worse, is absent."
+      },
+      "manner": {
+        "min": 1,
+        "max": 2,
+        "reason": "Courteous, clear."
+      }
+    }
+  }
+}

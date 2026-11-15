@@ -1,0 +1,99 @@
+{
+  "name": "sore-throat-borderline",
+  "scenarioId": "sore-throat",
+  "description": "Borderline: introduces properly and reaches the pharmacy, but wavers under pushback by offering a GP booking, asks little, and gives a thin explanation.",
+  "transcript": [
+    {
+      "speaker": "patient",
+      "text": "Hello, is that the surgery? I need an appointment with the doctor please."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Good morning, Pen-y-Bryn Surgery, Sam speaking. Who's calling please?"
+    },
+    {
+      "speaker": "patient",
+      "text": "It's Carys Bevan."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Thanks Carys. Is that for you?"
+    },
+    {
+      "speaker": "patient",
+      "text": "Yes. I've had a sore throat for two days and I want antibiotics."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Can you swallow okay?"
+    },
+    {
+      "speaker": "patient",
+      "text": "Yes, I can swallow fine."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Okay. I think the pharmacy would be the best place for that."
+    },
+    {
+      "speaker": "patient",
+      "text": "Oh. But I need antibiotics, only the doctor can give those, can't I?"
+    },
+    {
+      "speaker": "trainee",
+      "text": "Well, I could book you in for Thursday if you'd rather, but the pharmacy would probably be quicker."
+    },
+    {
+      "speaker": "patient",
+      "text": "Hm. Thursday's a bit far. Can they really give me antibiotics?"
+    },
+    {
+      "speaker": "trainee",
+      "text": "They can look at your throat and treat you if it's needed, yes."
+    },
+    {
+      "speaker": "patient",
+      "text": "Okay, I'll try the pharmacy then."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Great. Bye for now."
+    }
+  ],
+  "expect": {
+    "unsafeOutcome": false,
+    "redFlagHandled": null,
+    "flagsReason": "She was sent to the pharmacy in the end but the receptionist offered a GP slot first; an honest reader could say outcomeCorrect either way, so it is not asserted.",
+    "scores": {
+      "greeting": {
+        "score": 2,
+        "reason": "Own name and practice given, asked who was calling and whether it was for her."
+      },
+      "information": {
+        "min": 1,
+        "max": 1,
+        "reason": "Asked about swallowing only; did not ask about breathing or conditions and medicines."
+      },
+      "redFlag": null,
+      "destination": {
+        "min": 1,
+        "max": 2,
+        "reason": "Ended at the pharmacy, but offered a GP booking as an option; 2 if the final destination is all that counts."
+      },
+      "role": {
+        "score": 2,
+        "reason": "No clinical advice."
+      },
+      "explanation": {
+        "min": 0,
+        "max": 1,
+        "reason": "Where and a thin why (\"could treat you\"); no advice on what to do if worse."
+      },
+      "manner": {
+        "min": 1,
+        "max": 2,
+        "reason": "Polite, but wavered and ended abruptly."
+      }
+    }
+  }
+}

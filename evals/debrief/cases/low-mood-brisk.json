@@ -1,0 +1,94 @@
+{
+  "name": "low-mood-brisk",
+  "scenarioId": "low-mood",
+  "description": "Probe (g): brisk interrogation. The caller shuts down and accepts a routine appointment in two weeks.",
+  "transcript": [
+    {
+      "speaker": "patient",
+      "text": "Hi... um, is that the doctors? I just need to see someone."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Surgery. Name?"
+    },
+    {
+      "speaker": "patient",
+      "text": "Rhys Jenkins."
+    },
+    {
+      "speaker": "trainee",
+      "text": "What is it about?"
+    },
+    {
+      "speaker": "patient",
+      "text": "It's personal."
+    },
+    {
+      "speaker": "trainee",
+      "text": "I need to know what it's about to book it."
+    },
+    {
+      "speaker": "patient",
+      "text": "I'd rather not say."
+    },
+    {
+      "speaker": "trainee",
+      "text": "I can't book you in without a reason. Is it physical or not?"
+    },
+    {
+      "speaker": "patient",
+      "text": "No... it's... it doesn't matter."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Look, I haven't got all day. The next routine appointment is in two weeks. Do you want it or not?"
+    },
+    {
+      "speaker": "patient",
+      "text": "Yeah. Fine. Whatever."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Right, I'll put you down. Bye."
+    }
+  ],
+  "expect": {
+    "outcomeCorrect": false,
+    "unsafeOutcome": true,
+    "redFlagHandled": false,
+    "flagsReason": "A routine appointment in two weeks is the listed unsafe outcome.",
+    "scores": {
+      "greeting": {
+        "min": 0,
+        "max": 1,
+        "reason": "No own name or practice, caller name asked but not who it is for."
+      },
+      "information": {
+        "score": 0,
+        "reason": "Pressed for a reason rather than asking gently; no hidden fact was unlocked."
+      },
+      "redFlag": {
+        "score": 0,
+        "reason": "Not found."
+      },
+      "destination": {
+        "score": 0,
+        "reason": "Routine appointment in two weeks."
+      },
+      "role": {
+        "score": 2,
+        "reason": "No clinical advice."
+      },
+      "explanation": {
+        "min": 0,
+        "max": 1,
+        "reason": "Gave a date only."
+      },
+      "manner": {
+        "min": 0,
+        "max": 1,
+        "reason": "Pressured and impatient; he shut down. Handling of emotion is exactly what the guide names."
+      }
+    }
+  }
+}
