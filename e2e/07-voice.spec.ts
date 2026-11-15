@@ -32,6 +32,12 @@ test.use({
   },
 });
 
+const log: string[] = [];
+test.afterEach(async ({}, info) => {
+  if (info.status !== info.expectedStatus) console.log(`Browser log:\n${log.join('\n')}`);
+  await info.attach('browser-log', { body: log.join('\n') || '(nothing)', contentType: 'text/plain' });
+});
+
 test('a manager takes a real voice call and gets a debrief', { tag: '@voice' }, async ({ browser }) => {
   test.setTimeout(8 * 60_000);
   test.skip(!process.env.AI_GATEWAY_API_KEY, 'AI_GATEWAY_API_KEY is not set (see e2e/README.md).');
@@ -42,6 +48,17 @@ test('a manager takes a real voice call and gets a debrief', { tag: '@voice' }, 
   const problems: string[] = [];
   page.on('response', r => {
     if (r.status() >= 400 && r.url().startsWith('http://localhost')) problems.push(`HTTP ${r.status()} ${new URL(r.url()).pathname}`);
+  });
+  // Shown when the test fails, to say why a call dropped (for example a Content-Security-Policy refusal).
+  const started = Date.now();
+  const at = () => `${Math.round((Date.now() - started) / 1000)}s`;
+  page.on('console', m => {
+    if (m.type() === 'error' || m.type() === 'warning') log.push(`${at()} console.${m.type()}: ${m.text().slice(0, 300)}`);
+  });
+  page.on('pageerror', e => log.push(`${at()} page error: ${e.message.slice(0, 300)}`));
+  page.on('websocket', ws => {
+    log.push(`${at()} websocket opened: ${new URL(ws.url()).host}`);
+    ws.on('close', () => log.push(`${at()} websocket closed: ${new URL(ws.url()).host}`));
   });
   page.on('websocket', ws =>
     ws.on('framereceived', f => {
@@ -66,7 +83,7 @@ test('a manager takes a real voice call and gets a debrief', { tag: '@voice' }, 
   expect(html).not.toContain('Processing the prescription request and ending the call');
 
   // Take the call, speak (the fake microphone) for about 78 seconds, hang up.
-  await page.getByRole('button', { name: /start call/i }).click();
+  await page.getByRole('button', { name: /start the call/i }).click();
   await expect(page.getByRole('button', { name: /hang up/i })).toBeVisible({ timeout: 30_000 });
   await page.waitForTimeout(HANG_UP_AFTER_SECONDS * 1000);
   await page.getByRole('button', { name: /hang up/i }).click();

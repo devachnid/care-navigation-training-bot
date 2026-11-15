@@ -128,6 +128,12 @@ const ROUTES: Row[] = [
   { method: 'POST', path: `/api/sessions/${MISSING}/token`, expect: rule(NOT_FOUND, { anon: status(401) }) },
   { method: 'GET', path: '/api/sessions/{callId}/token', expect: rule(status(405)), note: 'POST only' },
   { method: 'GET', path: '/api/sessions/{callId}/end', expect: rule(status(405)), note: 'POST only' },
+
+  // The daily transcript-deletion job. The only way in is the secret, whoever you are signed in as.
+  // (The answer with the right secret is tested in 11-retention.spec.ts: it deletes expired transcripts.)
+  { method: 'GET', path: '/api/cron/retention', expect: rule(status(401)), note: 'no secret' },
+  { method: 'GET', path: '/api/cron/retention', headers: { Authorization: 'Bearer not-the-secret-not-the-secret' }, expect: rule(status(401)), note: 'wrong secret' },
+  { method: 'GET', path: '/api/cron/retention', headers: { Authorization: 'not-a-bearer-header' }, expect: rule(status(401)), note: 'not a bearer header' },
 ];
 
 function END_BODY() {
@@ -169,7 +175,7 @@ async function buildSetup(browser: Browser): Promise<Setup> {
   const approver = await clinicianContext.newPage();
   await approver.goto(`/scenarios/${scenarioId}`);
   await approver.getByLabel(/I have checked this scenario/).check();
-  await approver.getByRole('button', { name: 'Approve', exact: true }).click();
+  await approver.getByRole('button', { name: 'Approve this scenario' }).click();
   await expect(approver.getByText(new RegExp(`^Approved by ${clinician.name}`))).toBeVisible();
   const callId = await startCallFromHome(await traineeContext.newPage(), 'Sore throat');
   await finishCall(trainee, callId);
@@ -228,7 +234,7 @@ function describeResponse(response: APIResponse): Outcome {
 async function ask(persona: Persona, row: Row): Promise<Outcome> {
   const client = clients[persona];
   const url = fill(row.path);
-  if (row.method === 'GET') return describeResponse(await client.get(url, { maxRedirects: 0 }));
+  if (row.method === 'GET') return describeResponse(await client.get(url, { maxRedirects: 0, headers: row.headers }));
   const response = await client.post(url, {
     maxRedirects: 0,
     headers: { Origin: BASE_URL, ...row.headers },
@@ -247,6 +253,40 @@ for (const row of ROUTES) {
     expect(got, `${row.method} ${fill(row.path)}. Who: ${PERSONAS.map(p => `${p} = ${DESCRIPTION[p]}`).join('; ')}`).toEqual(want);
   });
 }
+
+// ---------------------------------------------------------------------------
+// Security headers
+// ---------------------------------------------------------------------------
+
+test('every page is sent with a fresh Content-Security-Policy nonce and the usual protective headers', async () => {
+  const first = await clients.anon.get('/privacy', { maxRedirects: 0 });
+  const second = await clients.anon.get('/privacy', { maxRedirects: 0 });
+  const nonce = (r: APIResponse) => /'nonce-([^']+)'/.exec(r.headers()['content-security-policy'] ?? '')?.[1];
+  expect(nonce(first), 'a nonce in the policy').toBeTruthy();
+  expect(nonce(first)).not.toEqual(nonce(second));
+  const policy = first.headers()['content-security-policy'];
+  expect(policy).toContain("default-src 'self'");
+  expect(policy).toContain("frame-ancestors 'none'");
+  expect(policy).toContain("object-src 'none'");
+  // The nonce on the page's scripts is the one in the policy.
+  expect(await first.text()).toContain(`nonce="${nonce(first)}"`);
+  const h = first.headers();
+  expect(h['strict-transport-security']).toContain('max-age=');
+  expect(h['x-content-type-options']).toBe('nosniff');
+  expect(h['x-frame-options']).toBe('DENY');
+  expect(h['referrer-policy']).toBe('same-origin');
+  expect(h['permissions-policy']).toContain('microphone=(self)');
+});
+
+test('an invitation link page and the setup page are never stored and never send the address on', async () => {
+  for (const url of ['/invite/not-a-real-token', '/setup']) {
+    const response = await clients.anon.get(url, { maxRedirects: 0 });
+    const h = response.headers();
+    expect(h['cache-control'], url).toContain('no-store');
+    expect(h['referrer-policy'], url).toBe('no-referrer');
+    expect(h['content-security-policy'], url).toContain("frame-ancestors 'none'");
+  }
+});
 
 // ---------------------------------------------------------------------------
 // The table must cover the app

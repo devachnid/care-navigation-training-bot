@@ -46,20 +46,20 @@ test('a new practice has the library scenarios as drafts, and the trainee sees n
   await expect(table.getByText('Approved', { exact: true })).toHaveCount(0);
 
   expect(await traineeSees(traineePage)).toEqual([]);
-  await expect(traineePage.getByRole('heading', { name: 'Your practice has no approved scenarios yet' })).toBeVisible();
+  await expect(traineePage.getByText('There are no calls to practise yet')).toBeVisible();
 });
 
 test('the manager cannot approve; the clinician can', async () => {
   await manager.goto(`/scenarios/${scenarioId}`);
   await expect(manager.getByText('You cannot approve scenarios')).toBeVisible();
-  await expect(manager.getByRole('button', { name: 'Approve', exact: true })).toHaveCount(0);
+  await expect(manager.getByRole('button', { name: 'Approve this scenario' })).toHaveCount(0);
 
   await clinicianPage.goto(`/scenarios/${scenarioId}`);
   // Refused without the tick, in words beside the box.
-  await clinicianPage.getByRole('button', { name: 'Approve', exact: true }).click();
+  await clinicianPage.getByRole('button', { name: 'Approve this scenario' }).click();
   await expect(clinicianPage.getByText('Tick the box to say you have checked this scenario').first()).toBeVisible();
   await clinicianPage.getByLabel(/I have checked this scenario/).check();
-  await clinicianPage.getByRole('button', { name: 'Approve', exact: true }).click();
+  await clinicianPage.getByRole('button', { name: 'Approve this scenario' }).click();
   await expect(clinicianPage.getByText(new RegExp(`^Approved by ${clinician.name}`))).toBeVisible();
 
   await manager.goto('/scenarios');
@@ -90,7 +90,7 @@ test('editing an approved scenario makes it a draft again and hides it from the 
 test('the clinician approves the new version; hiding and showing it changes what the trainee sees', async () => {
   await clinicianPage.goto(`/scenarios/${scenarioId}`);
   await clinicianPage.getByLabel(/I have checked this scenario/).check();
-  await clinicianPage.getByRole('button', { name: 'Approve', exact: true }).click();
+  await clinicianPage.getByRole('button', { name: 'Approve this scenario' }).click();
   await expect(clinicianPage.getByText(new RegExp(`^Approved by ${clinician.name}`))).toBeVisible();
   expect(await traineeSees(traineePage)).toEqual([TITLE]);
 
@@ -117,7 +117,7 @@ test('allowing drafts shows the trainee every shown scenario, the unapproved one
   await expect(cards).toHaveCount(4);
   await expect(cards.getByText('Draft', { exact: true })).toHaveCount(3);
   await expect(cards.filter({ hasText: TITLE }).getByText('Draft', { exact: true })).toHaveCount(0);
-  await expect(traineePage.getByText('A clinician has not approved this scenario yet. Use it to test.').first()).toBeVisible();
+  await expect(traineePage.getByText(/No clinician has approved this scenario yet/).first()).toBeVisible();
 
   // Turned off again, the trainee is back to the one approved scenario.
   await manager.getByLabel('Let staff practise on draft scenarios').uncheck();
