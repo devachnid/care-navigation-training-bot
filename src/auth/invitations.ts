@@ -220,8 +220,31 @@ async function makeResetLink(
       expiresAt,
     })
     .returning({ id: invitations.id });
-  await audit(by, 'reset_link.created', { type: 'user', id: user.id, practiceId }, { invitationId: row.id });
+  if (practiceId) {
+    await audit(by, 'reset_link.created', { type: 'user', id: user.id, practiceId }, { invitationId: row.id });
+  } else {
+    // Made by a platform admin or from the command line: every practice the person belongs to must see it.
+    await auditInEveryPracticeOf(user.id, by, 'reset_link.admin_created', { invitationId: row.id });
+  }
   return { invitationId: row.id, token, expiresAt };
+}
+
+/**
+ * Writes one audit entry for each practice the user has a place in (active or deactivated), so
+ * each practice's "Recent changes" shows it; one platform-level entry if they belong to none.
+ */
+async function auditInEveryPracticeOf(
+  userId: string,
+  by: AuditActor | null,
+  action: string,
+  detail: Record<string, unknown>,
+): Promise<void> {
+  const places = await getDb().select({ practiceId: memberships.practiceId }).from(memberships).where(eq(memberships.userId, userId));
+  if (places.length === 0) {
+    await audit(by, action, { type: 'user', id: userId, practiceId: null }, detail);
+    return;
+  }
+  for (const { practiceId } of places) await audit(by, action, { type: 'user', id: userId, practiceId }, detail);
 }
 
 /** Manager: a 24-hour password reset link for a member of their practice, within the rule above. */
@@ -346,6 +369,21 @@ const WRONG_CURRENT_PASSWORD =
   'That is not the password for your account. Enter the password you use to sign in. After several tries you will need to wait 15 minutes.';
 const PRIVACY_NEEDED = 'Read the privacy notice and tick the box to say you have read it.';
 
+/** True when `userId` is a platform admin, or an active manager of `practiceId` whose account is not disabled. */
+async function creatorStillMayInvite(userId: string, practiceId: string): Promise<boolean> {
+  const [row] = await queryRows<{ ok: boolean }>(sql`
+    select exists (
+      select 1 from ${users} u
+      where u.id = ${userId} and u.disabled_at is null
+        and (u.is_platform_admin
+          or exists (select 1 from ${memberships} m
+                     where m.user_id = u.id and m.practice_id = ${practiceId}
+                       and m.role = 'manager' and m.deactivated_at is null))
+    ) as ok
+  `);
+  return row?.ok === true;
+}
+
 /** Claims a link once: one `UPDATE ... WHERE used_at IS NULL ... RETURNING`. */
 async function claim(invitationId: string, now: Date): Promise<boolean> {
   const rows = await getDb()
@@ -380,6 +418,12 @@ export async function acceptInvitation(input: AcceptInvitationInput): Promise<Re
   if (!inv) return fail('not_found', LINK_UNUSABLE);
 
   if (inv.kind === 'reset') return applyResetLink(inv, input, now);
+
+  // The person who made the invitation must still be allowed to: an active manager of that
+  // practice, or a platform admin (checked now). A removed manager's old links stop working.
+  if (inv.createdBy && !(await creatorStillMayInvite(inv.createdBy, inv.practiceId!))) {
+    return fail('conflict', 'This invitation can no longer be used, because the person who sent it no longer manages the practice. Ask a manager there for a new one.');
+  }
 
   // Invitation.
   if (input.privacyAccepted !== true) return fail('invalid', PRIVACY_NEEDED);
@@ -464,6 +508,10 @@ async function applyResetLink(inv: typeof invitations.$inferSelect, input: Accep
     .where(eq(users.id, userId));
   await deleteUserSessions(userId);
   await db.update(users).set({ lastSignInAt: now }).where(eq(users.id, userId));
-  await audit({ userId }, 'password.reset', { type: 'user', id: userId, practiceId: inv.practiceId }, { invitationId: inv.id });
+  if (inv.practiceId) {
+    await audit({ userId }, 'password.reset', { type: 'user', id: userId, practiceId: inv.practiceId }, { invitationId: inv.id });
+  } else {
+    await auditInEveryPracticeOf(userId, { userId }, 'password.admin_reset', { invitationId: inv.id });
+  }
   return { ok: true, ...(await createSession(userId, await defaultPracticeFor(userId))) };
 }

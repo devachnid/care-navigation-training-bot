@@ -1,6 +1,6 @@
 import { and, asc, eq, isNotNull, isNull, sql } from 'drizzle-orm';
 import { getDb } from '@/db/client';
-import { memberships, practices, practiceScenarios, scenarios, users, type Role } from '@/db/schema';
+import { invitations, memberships, practices, practiceScenarios, scenarios, users, type Role } from '@/db/schema';
 import { audit } from '@/audit/log';
 import { setActivePractice } from '@/auth/sessions';
 import type { Actor } from '@/policy/actor';
@@ -208,8 +208,29 @@ export async function changeMemberRole(actor: Actor, userId: string, role: Role)
     .where(and(eq(memberships.practiceId, practiceId), eq(memberships.userId, userId), guard))
     .returning({ id: memberships.id });
   if (!row) return failFor(practiceId, userId);
-  await audit(actor, 'member.role_changed', { type: 'user', id: userId }, { role });
+  const revokedLinks = role === 'trainee' ? await revokeLinksMadeBy(practiceId, userId) : 0;
+  await audit(actor, 'member.role_changed', { type: 'user', id: userId }, { role, ...(revokedLinks ? { revokedLinks } : {}) });
   return { ok: true };
+}
+
+/**
+ * Cancels the unused invitations and reset links someone made in this practice. Called when they
+ * stop being an active manager there, so their links cannot be used to get back in. One UPDATE.
+ */
+async function revokeLinksMadeBy(practiceId: string, userId: string): Promise<number> {
+  const rows = await getDb()
+    .update(invitations)
+    .set({ revokedAt: new Date() })
+    .where(
+      and(
+        eq(invitations.practiceId, practiceId),
+        eq(invitations.createdBy, userId),
+        isNull(invitations.usedAt),
+        isNull(invitations.revokedAt),
+      ),
+    )
+    .returning({ id: invitations.id });
+  return rows.length;
 }
 
 export async function setMemberApprover(actor: Actor, userId: string, canApproveScenarios: boolean): Promise<Result> {
@@ -252,7 +273,8 @@ export async function deactivateMember(actor: Actor, userId: string): Promise<Re
     if (already) return { ok: true };
     return failFor(practiceId, userId);
   }
-  await audit(actor, 'member.deactivated', { type: 'user', id: userId });
+  const revokedLinks = await revokeLinksMadeBy(practiceId, userId);
+  await audit(actor, 'member.deactivated', { type: 'user', id: userId }, revokedLinks ? { revokedLinks } : undefined);
   return { ok: true };
 }
 

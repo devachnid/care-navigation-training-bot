@@ -62,6 +62,10 @@ export function describeAudit(e: AuditEntryFacts): string {
       return `Made a password reset link for ${person}`;
     case 'password.reset':
       return 'Set a new password with a reset link';
+    case 'reset_link.admin_created':
+      return `The service administrator created a password reset link for ${person}`;
+    case 'password.admin_reset':
+      return `${person} set a new password using a link from the service administrator`;
     case 'user.password_changed':
       return 'Changed their password';
     case 'member.role_changed':

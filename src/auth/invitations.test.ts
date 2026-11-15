@@ -4,6 +4,7 @@ import { getDb } from '@/db/client';
 import { auditLog, invitations, memberships, users } from '@/db/schema';
 import { ForbiddenError } from '@/policy/result';
 import { createTestDb } from '@/test/db';
+import { listAuditEntries } from '@/audit/dal';
 import { listMembers, reactivateMember } from '@/practices/dal';
 import { PASSWORD, addMember, deactivate, makePractice, makeUser, platformAdmin, seedLibrary } from '@/test/fixtures';
 import {
@@ -169,6 +170,17 @@ describe('invitations', () => {
     expect(await lookupInvitation(link.token)).toBeNull();
   });
 
+  it('joining with a correct existing password does not use up the address allowance', async () => {
+    const p1 = await makePractice();
+    const ip = '203.0.113.70';
+    for (let i = 0; i < 35; i++) {
+      const p2 = await makePractice();
+      const existing = await addMember(p1.practiceId, 'trainee');
+      const link = await invite(p2.manager, { email: existing.user.email });
+      expect((await acceptInvitation({ token: link.token, password: PASSWORD, privacyAccepted: true, ip })).ok).toBe(true);
+    }
+  });
+
   it('guessing the current password through an invitation is throttled like sign-in', async () => {
     const p1 = await makePractice();
     const p2 = await makePractice();
@@ -223,6 +235,39 @@ describe('invitations', () => {
     expect((await createResetLink(B.manager.actor, bStaff.user.id)).ok).toBe(true);
   });
 
+  // Security review round 2, R6: a removed manager's earlier invitation must not let them back in.
+  it('refuses an invitation whose maker is no longer an active manager of the practice, without using it up', async () => {
+    const A = await makePractice('R6 practice');
+    const rogue = await addMember(A.practiceId, 'manager');
+    const link = await invite(rogue, { email: fresh(), role: 'manager', canApproveScenarios: true });
+    // Taken out behind the DAL's back, so the link is not revoked: acceptance must check the maker itself.
+    await deactivate(A.practiceId, rogue.user.id);
+    const used = await acceptInvitation({ token: link.token, password: 'rogue alternate pass 1', privacyAccepted: true });
+    expect(used).toMatchObject({ ok: false, code: 'conflict' });
+    expect(await lookupInvitation(link.token)).not.toBeNull();
+    // Demoted to trainee, likewise.
+    const other = await addMember(A.practiceId, 'manager');
+    const link2 = await invite(other, { email: fresh() });
+    await getDb().update(memberships).set({ role: 'trainee' }).where(eq(memberships.userId, other.user.id));
+    expect(await acceptInvitation({ token: link2.token, password: NEW_PASSWORD, privacyAccepted: true })).toMatchObject({ ok: false, code: 'conflict' });
+    // A disabled maker, likewise.
+    const third = await addMember(A.practiceId, 'manager');
+    const link3 = await invite(third, { email: fresh() });
+    await getDb().update(users).set({ disabledAt: new Date() }).where(eq(users.id, third.user.id));
+    expect(await acceptInvitation({ token: link3.token, password: NEW_PASSWORD, privacyAccepted: true })).toMatchObject({ ok: false, code: 'conflict' });
+  });
+
+  it("a platform admin's invitation, or one with no maker, still works", async () => {
+    const { practiceId } = await makePractice();
+    const r = await createManagerInvitation(await platformAdmin(), practiceId, { email: fresh(), name: 'First Manager' });
+    if (!r.ok) throw new Error(r.error);
+    expect((await acceptInvitation({ token: r.token, password: NEW_PASSWORD, privacyAccepted: true })).ok).toBe(true);
+    const r2 = await createManagerInvitation(await platformAdmin(), practiceId, { email: fresh(), name: 'Second Manager' });
+    if (!r2.ok) throw new Error(r2.error);
+    await getDb().update(invitations).set({ createdBy: null }).where(eq(invitations.id, r2.invitationId));
+    expect((await acceptInvitation({ token: r2.token, password: NEW_PASSWORD, privacyAccepted: true })).ok).toBe(true);
+  });
+
   it('validates the input', async () => {
     const { manager } = await makePractice();
     const base = { email: fresh(), name: 'Nia', role: 'trainee' as const, canApproveScenarios: false };
@@ -270,6 +315,34 @@ describe('invitations', () => {
 });
 
 describe('reset links', () => {
+  // Security review round 2, R4: a reset by the service administrator must be visible to the practice.
+  it("a platform admin's reset link, and its use, appear in every practice the person belongs to", async () => {
+    const A = await makePractice('R4 practice A');
+    const B = await makePractice('R4 practice B');
+    const target = await addMember(A.practiceId, 'manager', false, 'Rhodri Price');
+    await getDb().insert(memberships).values({ practiceId: B.practiceId, userId: target.user.id, role: 'trainee', deactivatedAt: new Date() });
+    const link = await createResetLinkAsPlatformAdmin(await platformAdmin(), target.user.id);
+    if (!link.ok) throw new Error(link.error);
+    expect((await acceptInvitation({ token: link.token, password: 'admin chose this one now', privacyAccepted: true })).ok).toBe(true);
+
+    for (const p of [A, B]) {
+      const summaries = (await listAuditEntries(p.manager.actor, 50)).map(e => e.summary);
+      expect(summaries).toContain('The service administrator created a password reset link for Rhodri Price');
+      expect(summaries).toContain('Rhodri Price set a new password using a link from the service administrator');
+    }
+    const C = await makePractice('Unrelated');
+    expect((await listAuditEntries(C.manager.actor, 50)).map(e => e.summary).join('|')).not.toMatch(/Rhodri/);
+  });
+
+  it('a command-line reset is visible to the practice too, with no actor', async () => {
+    const A = await makePractice('CLI practice');
+    const target = await addMember(A.practiceId, 'trainee', false, 'Eleri Jones');
+    const link = await createResetLinkFromCommandLine(target.user.email);
+    if (!link.ok) throw new Error(link.error);
+    const entry = (await listAuditEntries(A.manager.actor, 50)).find(e => e.summary.startsWith('The service administrator created'));
+    expect(entry).toMatchObject({ actorName: null, summary: 'The service administrator created a password reset link for Eleri Jones' });
+  });
+
   async function useReset(link: InvitationLink, password = NEW_PASSWORD) {
     return acceptInvitation({ token: link.token, password, privacyAccepted: false });
   }

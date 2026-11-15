@@ -31,6 +31,8 @@ describe('describeAudit', () => {
     ['invitation.accepted', { detail: { role: 'trainee' } }, 'Accepted the invitation and joined as a trainee'],
     ['reset_link.created', { targetName: 'Tom Hughes' }, 'Made a password reset link for Tom Hughes'],
     ['password.reset', {}, 'Set a new password with a reset link'],
+    ['reset_link.admin_created', { targetName: 'Tom Hughes' }, 'The service administrator created a password reset link for Tom Hughes'],
+    ['password.admin_reset', { targetName: 'Tom Hughes' }, 'Tom Hughes set a new password using a link from the service administrator'],
     ['user.password_changed', {}, 'Changed their password'],
     ['member.role_changed', { targetName: 'Tom Hughes', detail: { role: 'manager' } }, 'Changed Tom Hughes to a manager'],
     ['member.role_changed', { targetName: 'Tom Hughes', detail: { role: 'trainee' } }, 'Changed Tom Hughes to a trainee'],

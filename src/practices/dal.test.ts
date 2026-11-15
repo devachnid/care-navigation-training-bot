@@ -2,6 +2,7 @@ import { and, eq } from 'drizzle-orm';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { getDb } from '@/db/client';
 import { auditLog, memberships, practiceScenarios, practices, scenarios, users } from '@/db/schema';
+import { createInvitation, createResetLink, lookupInvitation } from '@/auth/invitations';
 import { loadActor } from '@/auth/sessions';
 import { ForbiddenError } from '@/policy/result';
 import { createTestDb } from '@/test/db';
@@ -164,6 +165,30 @@ describe('team', () => {
     expect(await deactivateMember(manager.actor, other.user.id)).toMatchObject({ ok: false, code: 'conflict' });
     const [m] = await getDb().select().from(memberships).where(and(eq(memberships.practiceId, practiceId), eq(memberships.userId, other.user.id)));
     expect(m).toMatchObject({ role: 'manager', deactivatedAt: null });
+  });
+
+  it("deactivating or demoting a manager cancels the unused links they made in this practice, and records it", async () => {
+    const { practiceId, manager } = await makePractice();
+    const m2 = await addMember(practiceId, 'manager');
+    const t = await addMember(practiceId, 'trainee');
+    const inv = await createInvitation(m2.actor, { email: 'pending-one@example.com', name: 'Pending', role: 'trainee', canApproveScenarios: false });
+    const reset = await createResetLink(m2.actor, t.user.id);
+    const mine = await createInvitation(manager.actor, { email: 'pending-two@example.com', name: 'Mine', role: 'trainee', canApproveScenarios: false });
+    if (!inv.ok || !reset.ok || !mine.ok) throw new Error('links');
+    expect(await changeMemberRole(manager.actor, m2.user.id, 'trainee')).toEqual({ ok: true });
+    expect(await lookupInvitation(inv.token)).toBeNull();
+    expect(await lookupInvitation(reset.token)).toBeNull();
+    expect(await lookupInvitation(mine.token)).not.toBeNull();
+    const [roleEntry] = await getDb().select().from(auditLog).where(and(eq(auditLog.action, 'member.role_changed'), eq(auditLog.targetId, m2.user.id)));
+    expect(roleEntry.detail).toEqual({ role: 'trainee', revokedLinks: 2 });
+
+    const m3 = await addMember(practiceId, 'manager');
+    const inv3 = await createInvitation(m3.actor, { email: 'pending-three@example.com', name: 'P3', role: 'trainee', canApproveScenarios: false });
+    if (!inv3.ok) throw new Error('link');
+    expect(await deactivateMember(manager.actor, m3.user.id)).toEqual({ ok: true });
+    expect(await lookupInvitation(inv3.token)).toBeNull();
+    const [deEntry] = await getDb().select().from(auditLog).where(and(eq(auditLog.action, 'member.deactivated'), eq(auditLog.targetId, m3.user.id)));
+    expect(deEntry.detail).toEqual({ revokedLinks: 1 });
   });
 
   it('deactivation takes effect on the next request and reactivation restores it', async () => {
