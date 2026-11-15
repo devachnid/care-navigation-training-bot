@@ -1,0 +1,11 @@
+.group {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.question {
+  flex-basis: 100%;
+  font-weight: bold;
+}
