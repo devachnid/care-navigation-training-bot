@@ -22,7 +22,9 @@ export default async function CallPage({ params }: { params: Promise<{ sessionId
       title={session.scenario.title}
       modelId={process.env.REALTIME_MODEL || 'openai/gpt-realtime-2.1'}
       maxSeconds={maxCallSeconds()}
-      // Built here from the snapshot. The answer key (outcomes, red flags, hidden facts) never goes to the browser.
+      // Built here from the snapshot. The answer key (outcomes, red flags, unsafe outcomes) never goes to the
+      // browser. The caller's prompt does, including the hidden facts: the browser holds the voice connection
+      // and has to configure it (see "Known limits" in docs/design/full-app.md).
       sessionConfig={buildSessionConfig(session.scenario)}
     />
   );

@@ -39,14 +39,14 @@ export async function inviteManagerAction(_prev: LinkFormState, formData: FormDa
   if (!name) errors.name = "Enter the manager's name (up to 80 characters).";
   if (!email) errors.email = 'Enter their work email address.';
   else if (!isPlausibleEmail(email)) errors.email = 'Enter an email address like name@practice.nhs.uk.';
-  if (Object.keys(errors).length > 0 || !name) return failed(formData, ['name', 'email'], { errors });
+  if (Object.keys(errors).length > 0 || !name) return failed(formData, ['name', 'email', 'canApprove'], { errors });
 
-  const result = await createManagerInvitation(actor, practiceId, { name, email });
+  const result = await createManagerInvitation(actor, practiceId, { name, email, canApproveScenarios: text(formData, 'canApprove') === 'on' });
   if (!result.ok) {
     if (result.code === 'not_found') notFound();
     return result.code === 'invalid'
-      ? failed(formData, ['name', 'email'], { errors: { email: result.error } })
-      : failed(formData, ['name', 'email'], { message: result.error });
+      ? failed(formData, ['name', 'email', 'canApprove'], { errors: { email: result.error } })
+      : failed(formData, ['name', 'email', 'canApprove'], { message: result.error });
   }
   revalidatePath(`/admin/practices/${practiceId}`);
   return {

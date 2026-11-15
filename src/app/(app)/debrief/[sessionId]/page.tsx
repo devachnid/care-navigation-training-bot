@@ -109,9 +109,21 @@ export default async function DebriefPage({ params }: { params: Promise<{ sessio
           </Alert>
         )}
 
-        {session.status === 'debriefing' && (
+        {session.status === 'debriefing' && !session.debriefStuck && (
           <Alert tone="info" title="The debrief is still being prepared.">
             Reload this page in a moment.
+          </Alert>
+        )}
+        {session.status === 'debriefing' && session.debriefStuck && (
+          <Alert tone="error" title="The debrief did not finish.">
+            {session.isOwn && session.debriefRetriesLeft > 0 ? (
+              <form action={retryDebriefAction}>
+                <input type="hidden" name="sessionId" value={sessionId} />
+                <SubmitButton pendingLabel="Trying again…">Try the debrief again</SubmitButton>
+              </form>
+            ) : (
+              'The transcript is saved below.'
+            )}
           </Alert>
         )}
         {session.status === 'complete' && debrief?.unsafeOutcome && (

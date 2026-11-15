@@ -102,13 +102,15 @@ export async function createInvitation(actor: Actor, input: InviteInput): Promis
 export async function createManagerInvitation(
   actor: Actor,
   practiceId: string,
-  input: { email: string; name: string },
+  input: { email: string; name: string; canApproveScenarios?: boolean },
 ): Promise<Result<InvitationLink>> {
   assertCan(actor, 'platform.admin');
   if (!isUuid(practiceId)) return fail('not_found', 'That practice could not be found.');
   const [p] = await getDb().select({ id: practices.id }).from(practices).where(eq(practices.id, practiceId));
   if (!p) return fail('not_found', 'That practice could not be found.');
-  return inviteInto(practiceId, actor, { ...input, role: 'manager', canApproveScenarios: false });
+    // A manager cannot make themselves an approver, so a practice whose only manager is its clinician
+  // needs the permission granted here, by the platform admin.
+  return inviteInto(practiceId, actor, { ...input, role: 'manager', canApproveScenarios: input.canApproveScenarios === true });
 }
 
 export type PendingInvitation = {

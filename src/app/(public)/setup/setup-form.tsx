@@ -1,7 +1,7 @@
 'use client';
 
 import { useActionState } from 'react';
-import { ErrorSummary, Field, SubmitButton } from '@/ui';
+import { Checkbox, ErrorSummary, Field, SubmitButton } from '@/ui';
 import { initialFormState, summaryItems } from '@/app/_lib/form';
 import { PrivacyCheckbox } from '@/app/_lib/privacy-checkbox';
 import forms from '@/app/_lib/forms.module.css';
@@ -53,6 +53,12 @@ export function SetupForm() {
         required
       />
       <Field label="Practice name" name="practiceName" defaultValue={v.practiceName ?? ''} error={e.practiceName} required />
+      <Checkbox
+        name="canApprove"
+        label="I am a clinician and will approve scenarios for this practice"
+        hint="Scenarios are drafts until a clinician has checked them against the practice's protocols. You can also give this to someone else later, on the Team page."
+        defaultChecked={v.canApprove === 'on'}
+      />
       <PrivacyCheckbox error={e.privacy} />
       <div className={forms.actions}>
         <SubmitButton size="large" pendingLabel="Setting up…">

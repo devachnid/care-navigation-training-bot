@@ -8,7 +8,7 @@ const CHUNK = 200;
 
 /**
  * Deletes the transcripts of calls that ended more than the practice's retention period ago.
- * This is a system job (the daily cron route and a script), not an actor's action, so it takes no
+ * This is a system job (run by the daily cron route), not an actor's action, so it takes no
  * actor and is not used by pages or server actions.
  *
  * For each practice with `transcript_retention_days` set, and each of its finished calls that ended

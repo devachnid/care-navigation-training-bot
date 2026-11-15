@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, isNull, sql, type SQL } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNull, lt, or, sql, type SQL } from 'drizzle-orm';
 import { z } from 'zod';
 import { getDb, queryRows } from '@/db/client';
 import { debriefs, practices, practiceScenarios, sessions, transcriptTurns, users, type SessionStatus } from '@/db/schema';
@@ -265,6 +265,8 @@ export type CallSession = {
   durationSeconds: number | null;
   /** How many more times a failed debrief can be tried again (0 once used up). */
   debriefRetriesLeft: number;
+  /** The debrief was started but never finished (for example the request was cut off), so it can be tried again. */
+  debriefStuck: boolean;
   /** When the transcript was deleted under the practice's retention period; null while it is kept. */
   transcriptDeletedAt: Date | null;
   /** The practice's retention period now (null = kept); for the note shown once a transcript has been deleted. */
@@ -302,6 +304,7 @@ export async function getSession(actor: Actor, sessionId: string): Promise<CallS
     scenario: row.scenario,
     isOwn: row.userId === actor.userId,
     debriefRetriesLeft: Math.max(0, MAX_DEBRIEF_ATTEMPTS - debriefAttempts),
+    debriefStuck: row.status === 'debriefing' && row.endedAt !== null && isStale(row.endedAt, new Date()),
   };
 }
 
@@ -441,13 +444,20 @@ export async function markDebriefFailed(actor: Actor, sessionId: string): Promis
     .where(and(eq(sessions.id, sessionId), ownedBy(actor), eq(sessions.status, 'debriefing')));
 }
 
+/** A debrief normally takes seconds. One still "being prepared" this long after the call ended was cut off. */
+export const STUCK_DEBRIEF_MINUTES = 5;
+const isStale = (endedAt: Date, now: Date) => now.getTime() - endedAt.getTime() > STUCK_DEBRIEF_MINUTES * 60_000;
+
 /**
  * Moves the actor's own failed debrief back to "debriefing" so it can be tried again, at most
- * twice after the automatic run (`MAX_DEBRIEF_ATTEMPTS` in all). True if claimed.
+ * twice after the automatic run (`MAX_DEBRIEF_ATTEMPTS` in all). A debrief that was started but
+ * never finished (still "debriefing" `STUCK_DEBRIEF_MINUTES` after the call ended) counts as failed.
+ * True if claimed.
  */
-export async function claimDebriefRetry(actor: Actor, sessionId: string): Promise<boolean> {
+export async function claimDebriefRetry(actor: Actor, sessionId: string, now: Date = new Date()): Promise<boolean> {
   assertMember(actor, 'calls.take');
   if (!isUuid(sessionId)) return false;
+  const stuckBefore = new Date(now.getTime() - STUCK_DEBRIEF_MINUTES * 60_000);
   const rows = await getDb()
     .update(sessions)
     .set({ status: 'debriefing', debriefAttempts: sql`${sessions.debriefAttempts} + 1` })
@@ -455,7 +465,7 @@ export async function claimDebriefRetry(actor: Actor, sessionId: string): Promis
       and(
         eq(sessions.id, sessionId),
         ownedBy(actor),
-        eq(sessions.status, 'failed'),
+        or(eq(sessions.status, 'failed'), and(eq(sessions.status, 'debriefing'), lt(sessions.endedAt, stuckBefore))),
         sql`${sessions.debriefAttempts} < ${MAX_DEBRIEF_ATTEMPTS}`,
         // Nothing to assess once the transcript has been deleted under the retention period.
         isNull(sessions.transcriptDeletedAt),

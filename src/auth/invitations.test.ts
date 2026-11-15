@@ -257,6 +257,19 @@ describe('invitations', () => {
     expect(await acceptInvitation({ token: link3.token, password: NEW_PASSWORD, privacyAccepted: true })).toMatchObject({ ok: false, code: 'conflict' });
   });
 
+  it('a platform admin can invite a manager who is also the clinician approver; by default they are not', async () => {
+    const { practiceId } = await makePractice();
+    const admin = await platformAdmin();
+    const plain = await createManagerInvitation(admin, practiceId, { email: fresh(), name: 'Plain Manager' });
+    const clinician = await createManagerInvitation(admin, practiceId, { email: fresh(), name: 'Dr Manager', canApproveScenarios: true });
+    if (!plain.ok || !clinician.ok) throw new Error('invitation failed');
+    const a = await acceptInvitation({ token: plain.token, password: NEW_PASSWORD, privacyAccepted: true });
+    const b = await acceptInvitation({ token: clinician.token, password: NEW_PASSWORD, privacyAccepted: true });
+    if (!a.ok || !b.ok) throw new Error('accept failed');
+    expect((await loadActor(a.token))?.membership).toMatchObject({ role: 'manager', canApproveScenarios: false });
+    expect((await loadActor(b.token))?.membership).toMatchObject({ role: 'manager', canApproveScenarios: true });
+  });
+
   it("a platform admin's invitation, or one with no maker, still works", async () => {
     const { practiceId } = await makePractice();
     const r = await createManagerInvitation(await platformAdmin(), practiceId, { email: fresh(), name: 'First Manager' });

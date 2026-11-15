@@ -29,7 +29,7 @@ If you do not want yourself to be a manager of the first practice, the first man
 
 1. Sign in as the service administrator and open **Admin**.
 2. Under **Add a practice**, enter the practice name (2 to 120 characters) and save. The practice starts with every active library scenario copied in as a draft. Nobody can sign in to it yet.
-3. Open the practice from the list. Under **Invite a manager**, enter the manager's name and work email and make the link.
+3. Open the practice from the list. Under **Invite a manager**, enter the manager's name and work email, tick the clinician box if this manager will also approve scenarios, and make the link.
 4. The link (`/invite/<token>`) is shown once, on that page only. Copy it and send it to the manager by whatever channel you trust. It works once and lasts 7 days. It is listed under **Waiting to join** until used, where you can cancel it.
 5. The manager opens the link, ticks that they have read the privacy notice, chooses a password and is signed in to their practice. If that email address already has an account on the service, they are asked for that account's current password instead, which is never changed.
 
@@ -40,7 +40,7 @@ If you lose the link before sending it, cancel the invitation and make a new one
 Tell the manager these steps. All are on their own pages after sign-in.
 
 1. **Invite staff.** Team, then **Invite someone**. Enter name, email, role (trainee or manager), and whether the person can approve scenarios. The app shows a one-time link (7 days). The manager passes it on. A person who is already in the practice cannot be invited again.
-2. **Give a clinician the approve permission.** A scenario can only be approved by someone with the "can approve scenarios" permission, who should be a clinician checking against the practice's protocols. Set it when inviting, or on the Team page open the person and use **Approving scenarios**. A manager cannot give the permission to themselves: another manager must. The Scenarios page says who can approve and warns if nobody can.
+2. **Give a clinician the approve permission.** A scenario can only be approved by someone with the "can approve scenarios" permission, who should be a clinician checking against the practice's protocols. Set it when inviting, or on the Team page open the person and use **Approving scenarios**. A manager cannot give the permission to themselves: another manager must. If the practice's only manager is also its clinician, the permission is given when their account is made: tick "I am a clinician and will approve scenarios" at first-run setup, or "This manager is a clinician who will approve scenarios" when the service administrator invites them. The Scenarios page says who can approve and warns if nobody can.
 3. **Get scenarios approved.** On Scenarios, the clinician opens each scenario, reads the answer key, tries the call, then ticks that they have checked it against the practice's protocols and approves. Approval is for exactly that version: any later edit makes the scenario a draft again. Managers and approvers can always try drafts; other staff see only approved scenarios.
 4. **Optionally allow drafts.** Settings, **Let staff practise on draft scenarios**. Staff then see unapproved scenarios, with a notice on the call and the debrief saying so. Leave it off until the practice is content.
 5. **Set transcript retention.** Settings, **Keep transcripts for**: keep until deleted (the default), 90 days, 180 days, 1 year or 2 years. A daily job then deletes transcripts and the quoted lines in debriefs of calls older than that; scores stay. Shortening the period deletes older transcripts at the next daily run and cannot be undone. This only works if `CRON_SECRET` is set (section 7).
@@ -264,17 +264,7 @@ Things to know:
 
 1. The call shows "Debrief failed". The trainee can press **Try the debrief again** twice (three attempts in all). Their transcript is kept. After three attempts, they start a new call.
 2. Find the cause in the runtime logs at the time of the call, under `Debrief failed`. Common causes: `DEBRIEF_MODEL is not set`; the gateway key is wrong, out of budget or revoked; the model name is not valid for the gateway; the model's answer did not fit the expected shape.
-3. A call showing "Debrief being prepared" for more than a few minutes had its request cut off (the end-of-call route allows 120 seconds), and nothing retries it. Find such calls in Neon:
-
-   ```sql
-   select id, started_at, ended_at from sessions where status = 'debriefing' and ended_at < now() - interval '10 minutes';
-   ```
-
-   To let the trainee retry one, set it to failed (their retry button appears; attempts left permitting). Do this on production only after checking the id:
-
-   ```sql
-   update sessions set status = 'failed' where id = '<session id>' and status = 'debriefing';
-   ```
+3. A call showing "Debrief being prepared" for more than a few minutes had its request cut off (the end-of-call route allows 120 seconds). Five minutes after the call ended, its debrief page shows "The debrief did not finish" with a **Try the debrief again** button for the person who made the call, counted against the same three attempts. No database change is needed.
 
 4. If a call says it could not be saved because the transcript is longer than could have been said, the browser reported more text than the connected time allows. The call stays open and the trainee can start a new one. If it happens to honest users, check the server clock assumptions in section 7 of the design.
 

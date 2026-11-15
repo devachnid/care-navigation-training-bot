@@ -45,6 +45,18 @@ describe('first-run setup', () => {
     expect(await isSetupOpen()).toBe(false);
   });
 
+  it('makes the first manager an approver only when they say they are the clinician', async () => {
+    const plain = await runSetup(input);
+    if (!plain.ok) throw new Error(plain.error);
+    expect((await loadActor(plain.token))?.membership?.canApproveScenarios).toBe(false);
+
+    await truncateAll(getDb());
+    await seedLibrary();
+    const clinician = await runSetup({ ...input, canApproveScenarios: true });
+    if (!clinician.ok) throw new Error(clinician.error);
+    expect((await loadActor(clinician.token))?.membership).toMatchObject({ role: 'manager', canApproveScenarios: true });
+  });
+
   it('works only once', async () => {
     expect((await runSetup(input)).ok).toBe(true);
     expect(await runSetup({ ...input, email: 'second@example.com' })).toMatchObject({ ok: false, code: 'conflict' });

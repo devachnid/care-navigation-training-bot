@@ -5,7 +5,7 @@ import { writeSessionCookie } from '@/auth/next-cookies';
 import { isSetupOpen, runSetup } from '@/auth/setup';
 import { failed, text, type FormState } from '@/app/_lib/form';
 
-const KEEP = ['setupCode', 'name', 'email', 'practiceName'] as const;
+const KEEP = ['setupCode', 'name', 'email', 'practiceName', 'canApprove'] as const;
 
 /** Public, but only while `isSetupOpen()` and with the right setup code (checked by `runSetup`). */
 export async function setupAction(_prev: FormState, formData: FormData): Promise<FormState> {
@@ -29,6 +29,7 @@ export async function setupAction(_prev: FormState, formData: FormData): Promise
     password,
     practiceName: text(formData, 'practiceName'),
     privacyAccepted: true,
+    canApproveScenarios: text(formData, 'canApprove') === 'on',
   });
   if (!result.ok) return failed(formData, KEEP, { message: result.error });
 

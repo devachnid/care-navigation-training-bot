@@ -33,6 +33,8 @@ export type SetupInput = {
   password: string;
   practiceName: string;
   privacyAccepted: boolean;
+  /** The first manager is also the clinician who approves scenarios. A manager cannot give this to themselves later. */
+  canApproveScenarios?: boolean;
 };
 
 const CLOSED = 'Setup has already been done. Sign in instead.';
@@ -79,7 +81,7 @@ export async function runSetup(input: SetupInput): Promise<Result<NewSession>> {
   if (!practice.ok) throw new Error(`Setup could not create the practice: ${practice.error}`);
   await getDb()
     .insert(memberships)
-    .values({ practiceId: practice.practiceId, userId: admin.id, role: 'manager', canApproveScenarios: false });
+    .values({ practiceId: practice.practiceId, userId: admin.id, role: 'manager', canApproveScenarios: input.canApproveScenarios === true });
   await audit(actor, 'member.added', { type: 'user', id: admin.id, practiceId: practice.practiceId }, { role: 'manager' });
   return { ok: true, ...(await createSession(admin.id, practice.practiceId)) };
 }

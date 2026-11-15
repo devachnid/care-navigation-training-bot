@@ -426,6 +426,19 @@ describe('snapshots and debrief bookkeeping', () => {
     expect(await getDb().select().from(debriefs).where(eq(debriefs.sessionId, id))).toHaveLength(0);
   });
 
+  it('a debrief that was started but never finished can be retried, but not while it may still be running', async () => {
+    const { trainee, approved } = await setup();
+    const id = await connectedCall(trainee.actor, approved.id);
+    await endCall(trainee.actor, id, goodBody);
+    // Still "debriefing" a moment after the call ended: it may be running, so leave it alone.
+    expect((await getSession(trainee.actor, id))?.debriefStuck).toBe(false);
+    expect(await claimDebriefRetry(trainee.actor, id)).toBe(false);
+    // Ten minutes later it has plainly been cut off.
+    await getDb().update(sessions).set({ endedAt: new Date(Date.now() - 10 * 60_000) }).where(eq(sessions.id, id));
+    expect((await getSession(trainee.actor, id))?.debriefStuck).toBe(true);
+    expect(await claimDebriefRetry(trainee.actor, id)).toBe(true);
+  });
+
   it('a failed debrief can be retried at most twice after the automatic run', async () => {
     const { trainee, approved } = await setup();
     const id = await connectedCall(trainee.actor, approved.id);
