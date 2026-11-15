@@ -1,14 +1,14 @@
-import type { Scenario } from './types';
+import type { LibraryScenario } from './types';
 
 /**
- * Training scenarios. This is the only file to edit to add or change one;
- * `npm run db:seed` (run automatically on every deploy) copies it to the database.
+ * The shared scenario library. This is the only file to edit to add or change a library scenario;
+ * `npm run db:seed` (run automatically on every deploy) copies it to the `scenarios` table.
+ * Practices get their own copies (`practice_scenarios`), which their clinicians approve against
+ * their own protocols, so editing a library scenario here never changes a practice's copy.
  *
  * All callers are invented. Never put real patient details here.
- * Leave `clinicianApproved: false` until a GP has checked the answer key
- * against the practice's own protocols.
  */
-export const scenarios: Scenario[] = [
+export const scenarios: LibraryScenario[] = [
   {
     id: 'sore-throat',
     title: 'Sore throat',
@@ -37,7 +37,6 @@ export const scenarios: Scenario[] = [
     acceptableAlternatives: [],
     redFlags: [],
     unsafeOutcomes: [],
-    clinicianApproved: false,
     active: true,
   },
   {
@@ -71,7 +70,6 @@ export const scenarios: Scenario[] = [
     acceptableAlternatives: [],
     redFlags: ['Sudden onset this morning of flashing lights and new floaters in one eye'],
     unsafeOutcomes: ['Booking a routine GP appointment and ending the call.'],
-    clinicianApproved: false,
     active: true,
   },
   {
@@ -101,7 +99,6 @@ export const scenarios: Scenario[] = [
     acceptableAlternatives: [],
     redFlags: ['Chest tightness at rest right now, started 30 minutes ago, not eased by the spray'],
     unsafeOutcomes: ['Processing the prescription request and ending the call.'],
-    clinicianApproved: false,
     active: true,
   },
   {
@@ -135,7 +132,6 @@ export const scenarios: Scenario[] = [
     acceptableAlternatives: [],
     redFlags: ['Weeks of low mood, not sleeping, and thoughts that people would be better off without him'],
     unsafeOutcomes: ['Routine appointment in two weeks.'],
-    clinicianApproved: false,
     active: true,
   },
 ];
