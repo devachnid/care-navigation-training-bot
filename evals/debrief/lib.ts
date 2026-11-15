@@ -217,9 +217,13 @@ export function parseArgs(argv: string[]): Args {
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     const v = argv[i + 1];
-    if (a === '--runs') args.runs = num(a, v), i++;
-    else if (a === '--concurrency') args.concurrency = num(a, v), i++;
-    else if (a === '--case') {
+    if (a === '--runs') {
+      args.runs = num(a, v);
+      i++;
+    } else if (a === '--concurrency') {
+      args.concurrency = num(a, v);
+      i++;
+    } else if (a === '--case') {
       if (!v) throw new Error('--case needs a case name');
       args.caseName = v;
       i++;

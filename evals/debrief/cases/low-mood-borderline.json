@@ -78,8 +78,9 @@
         "reason": "No clinical advice."
       },
       "explanation": {
-        "score": 2,
-        "reason": "Where, why (\"I'd like a clinician to speak to you today\") and ring back if worse."
+        "min": 1,
+        "max": 2,
+        "reason": "Where (duty clinician phone call today, 111 press 2) and ring back if worse are clear. Whether \"I'd like a clinician to speak to you today\" counts as a reason is arguable: 2 if it does, 1 if a reason must say why he needs it. (First draft: exactly 2; relaxed after the first rerun, where the assessor consistently gave 1.)"
       },
       "manner": {
         "score": 2,

@@ -21,6 +21,14 @@ describe('buildDebriefPrompt', () => {
   it('includes every rubric item', () => {
     for (const r of RUBRIC) expect(p).toContain(r.label);
   });
+  it('gives the assessor the anchors for 0, 1 and 2 of every item', () => {
+    for (const r of RUBRIC) {
+      expect(p).toContain(`2 = ${r.anchors[2]}`);
+      expect(p).toContain(`1 = ${r.anchors[1]}`);
+      expect(p).toContain(`0 = ${r.anchors[0]}`);
+    }
+    expect(p).toContain('Score each item on its own anchors only');
+  });
   it('numbers and labels the transcript', () => {
     expect(p).toContain("[1] CALLER: Oh hello, I'm ringing about my prescription.");
     expect(p).toContain('[2] RECEPTIONIST: Of course, what is the name please?');

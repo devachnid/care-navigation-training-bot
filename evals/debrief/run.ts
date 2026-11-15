@@ -28,6 +28,15 @@ function loadCases(only?: string): CaseFile[] {
   return picked;
 }
 
+/** The message, plus (for a reply that did not fit the schema) why and the start of what the model said. */
+function describeError(err: unknown): string {
+  if (!(err instanceof Error)) return String(err);
+  const e = err as Error & { text?: string; cause?: unknown };
+  // The validation message ends with the reason (which field), so keep its tail.
+  const why = e.cause instanceof Error ? ` Cause: ...${e.cause.message.slice(-500)}` : '';
+  return `${err.message}${why}`;
+}
+
 async function pool<T>(items: T[], size: number, fn: (item: T) => Promise<void>) {
   let next = 0;
   await Promise.all(
@@ -70,7 +79,7 @@ async function main() {
       const { result, droppedPoints } = await assessTranscript(scenario, c.transcript, modelId);
       records.push(recordFromResult(c, run, Date.now() - started, result, droppedPoints));
     } catch (err) {
-      records.push({ case: c.name, scenarioId: c.scenarioId, run, ms: Date.now() - started, error: err instanceof Error ? err.message : String(err) });
+      records.push({ case: c.name, scenarioId: c.scenarioId, run, ms: Date.now() - started, error: describeError(err) });
     }
     process.stdout.write('.');
   });
