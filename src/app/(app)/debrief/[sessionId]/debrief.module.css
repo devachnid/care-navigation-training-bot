@@ -1,0 +1,65 @@
+.points {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.points p {
+  margin: 0 0 var(--space-3);
+}
+
+.quote {
+  margin: 0;
+  padding-left: var(--space-4);
+  border-left: 0.3rem solid var(--edge);
+  color: var(--muted);
+}
+
+.expected {
+  margin: var(--space-5) 0 0;
+}
+
+.transcript {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.turn {
+  display: grid;
+  grid-template-columns: 7rem 1fr;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-s);
+  background: var(--paper);
+}
+
+.trainee {
+  background: var(--brand-tint);
+}
+
+.who {
+  font-weight: bold;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 36rem) {
+  .turn {
+    grid-template-columns: 1fr;
+    gap: var(--space-1);
+  }
+}
+
+.reported {
+  margin: 0;
+}
+
+.stack {
+  display: grid;
+  gap: var(--space-4);
+}
