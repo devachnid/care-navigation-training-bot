@@ -76,7 +76,7 @@ export default async function PersonPage({ params }: { params: Promise<{ userId:
         <div className={styles.cards}>
           <ChangeRole person={who} />
           <ChangeApprover person={who} />
-          <ChangeAccess person={who} key={active ? 'active' : 'deactivated'} />
+          <ChangeAccess person={who} />
           <ResetLink person={who} />
         </div>
       </Section>

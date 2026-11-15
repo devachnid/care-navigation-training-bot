@@ -40,16 +40,16 @@ export default async function TeamPage() {
           columns={[
             {
               key: 'name',
-              header: 'Name',
+              header: 'Name and email',
               rowHeader: true,
               cell: r => (
                 <>
                   <Link href={`/team/${r.userId}`}>{r.name}</Link>
                   {r.userId === actor.userId && <span className={styles.you}> (you)</span>}
+                  <span className={styles.email}>{r.email}</span>
                 </>
               ),
             },
-            { key: 'email', header: 'Email', cell: r => r.email },
             {
               key: 'role',
               header: 'Role',

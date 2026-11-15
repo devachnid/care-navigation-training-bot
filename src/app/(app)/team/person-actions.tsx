@@ -36,9 +36,9 @@ export function ChangeRole({ person }: { person: Person }) {
     <Card title="Role" headingLevel={3}>
       <form action={action} className={forms.form}>
         <input type="hidden" name="userId" value={person.userId} />
-        <Field label="Role" name="role" as="select" defaultValue={person.role} key={person.role}>
-          <option value="trainee">Trainee: takes calls and sees their own results</option>
-          <option value="manager">Manager: also manages the team, scenarios and settings</option>
+        <Field label="Role" name="role" as="select" hint="A manager can also manage the team, scenarios and settings." defaultValue={person.role} key={person.role}>
+          <option value="trainee">Trainee</option>
+          <option value="manager">Manager</option>
         </Field>
         <div className={forms.actions}>
           <SubmitButton pendingLabel="Saving…">Change role</SubmitButton>
@@ -72,12 +72,17 @@ export function ChangeApprover({ person }: { person: Person }) {
   );
 }
 
+/** One state for both buttons, so the confirmation stays on screen when the button changes. */
+const changeAccess = (prev: FormState, formData: FormData) =>
+  formData.get('mode') === 'deactivate' ? deactivateAction(prev, formData) : reactivateAction(prev, formData);
+
 export function ChangeAccess({ person }: { person: Person }) {
-  const [state, action] = useActionState(person.active ? deactivateAction : reactivateAction, initialFormState);
+  const [state, action] = useActionState(changeAccess, initialFormState);
   return (
     <Card title="Access to your practice" headingLevel={3}>
       <form action={action} className={forms.form}>
         <input type="hidden" name="userId" value={person.userId} />
+        <input type="hidden" name="mode" value={person.active ? 'deactivate' : 'reactivate'} />
         <p className={styles.explain}>
           {person.active
             ? 'Deactivating stops them signing in to your practice. Their calls and scores are kept.'

@@ -72,3 +72,11 @@
 .numberTag {
   font-variant-numeric: tabular-nums;
 }
+
+.email {
+  display: block;
+  color: var(--muted);
+  font-size: var(--text-s);
+  font-weight: normal;
+  overflow-wrap: anywhere;
+}
