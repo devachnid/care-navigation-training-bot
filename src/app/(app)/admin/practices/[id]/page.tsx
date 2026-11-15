@@ -7,16 +7,20 @@ import {
   listPracticePeople,
 } from '@/admin/dal';
 import { Alert, ConfirmButton, DataTable, PageHeader, Section, Tag } from '@/ui';
+import { formatDate, formatDateTime } from '@/app/_lib/dates';
 import { requireAbility } from '@/app/_lib/guard';
 import { revokeInvitationAction, setSuspendedAction } from '../../actions';
 import { InviteForm } from '../../invite-form';
 import { PeopleTable, type PersonRow } from '../../people-table';
 import styles from '../../admin.module.css';
 
-export const metadata: Metadata = { title: 'Practice (admin)' };
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const actor = await requireAbility('platform.admin');
+  const practice = await getPracticeDetail(actor, (await params).id);
+  if (!practice) notFound();
+  return { title: `${practice.name} | Admin` };
+}
 
-const when = new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Europe/London' });
-const day = new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeZone: 'Europe/London' });
 
 export default async function AdminPracticePage({ params }: { params: Promise<{ id: string }> }) {
   const actor = await requireAbility('platform.admin');
@@ -38,23 +42,23 @@ export default async function AdminPracticePage({ params }: { params: Promise<{ 
     approver: p.canApproveScenarios,
     active: p.active,
     disabled: p.disabled,
-    lastSignIn: p.lastSignInAt ? when.format(p.lastSignInAt) : 'Never',
+    lastSignIn: p.lastSignInAt ? formatDateTime(p.lastSignInAt) : 'Never',
   }));
 
   return (
     <>
       <PageHeader eyebrow="Practice" title={practice.name} back={{ href: '/admin', label: 'All practices' }} />
 
-      <Section title="State">
+      <Section title="Practice status">
         <dl className={styles.details}>
-          <dt>State</dt>
+          <dt>Status</dt>
           <dd>{practice.suspended ? <Tag tone="draft">Suspended</Tag> : <Tag tone="approved">Active</Tag>}</dd>
           <dt>Added</dt>
-          <dd>{day.format(practice.createdAt)}</dd>
+          <dd>{formatDate(practice.createdAt)}</dd>
           {practice.suspendedAt && (
             <>
               <dt>Suspended on</dt>
-              <dd>{when.format(practice.suspendedAt)}</dd>
+              <dd>{formatDateTime(practice.suspendedAt)}</dd>
             </>
           )}
         </dl>
@@ -101,18 +105,19 @@ export default async function AdminPracticePage({ params }: { params: Promise<{ 
           columns={[
             { key: 'name', header: 'Name', rowHeader: true },
             { key: 'email', header: 'Email' },
-            { key: 'createdAt', header: 'Invited', nowrap: true, cell: i => when.format(i.createdAt) },
-            { key: 'expiresAt', header: 'Link stops working', nowrap: true, cell: i => when.format(i.expiresAt) },
+            { key: 'createdAt', header: 'Invited', nowrap: true, cell: i => formatDateTime(i.createdAt) },
+            { key: 'expiresAt', header: 'Link stops working', nowrap: true, cell: i => formatDateTime(i.expiresAt) },
             {
               key: 'revoke',
-              header: 'Cancel',
+              header: 'Action',
               cell: i => (
                 <form action={revokeInvitationAction}>
                   <input type="hidden" name="practiceId" value={practice.id} />
                   <ConfirmButton
-                    label="Revoke"
+                    label="Cancel invitation"
                     question={`The link for ${i.name} will stop working.`}
-                    confirmLabel="Yes, revoke"
+                    confirmLabel="Yes, cancel it"
+                    cancelLabel="No, keep it"
                     name="invitationId"
                     value={i.id}
                   />
@@ -123,7 +128,7 @@ export default async function AdminPracticePage({ params }: { params: Promise<{ 
         />
       </Section>
 
-      <Section title="People" description="Everyone who has a place in this practice. A reset link works once and lasts 24 hours.">
+      <Section title="Staff" description="Everyone who has a place in this practice. A reset link works once and lasts 24 hours.">
         <PeopleTable people={rows} />
       </Section>
 

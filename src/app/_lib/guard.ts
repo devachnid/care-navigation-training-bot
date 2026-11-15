@@ -45,7 +45,7 @@ export type NavItem = { href: string; label: string };
  */
 export function navFor(actor: Actor): NavItem[] {
   const items: (NavItem & { ability: Ability })[] = [
-    { href: '/', label: 'Practise', ability: 'calls.take' },
+    { href: '/', label: 'Choose a call', ability: 'calls.take' },
     { href: '/history', label: 'My calls', ability: 'sessions.viewOwn' },
     { href: '/team', label: 'Team', ability: 'team.manage' },
     { href: '/reports', label: 'Reports', ability: 'reports.view' },

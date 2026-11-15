@@ -78,5 +78,6 @@
   color: var(--muted);
   font-size: var(--text-s);
   font-weight: normal;
+  /* Break after the @ first (see the wbr in the page); mid-word only when the column is really narrow. */
   overflow-wrap: anywhere;
 }

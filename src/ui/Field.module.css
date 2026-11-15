@@ -46,6 +46,16 @@ textarea.control {
   cursor: not-allowed;
 }
 
+/* Read-only reads as information, not as something to type in: no solid box, a dashed edge, a note in the label. */
 .control[readonly] {
-  background: var(--wash);
+  background: transparent;
+  border-style: dashed;
+  border-color: var(--edge);
+  color: var(--ink);
+  cursor: default;
+}
+
+.readOnlyNote {
+  color: var(--muted);
+  font-weight: normal;
 }

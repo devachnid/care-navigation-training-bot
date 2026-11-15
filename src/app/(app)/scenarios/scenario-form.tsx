@@ -22,14 +22,21 @@ export function ScenarioForm({ scenarioId, revision, initialValues, approved }: 
   const [state, action] = useActionState(saveScenarioAction, initialFormState);
   const values = state.values ?? initialValues;
   const errors = state.errors ?? {};
+  const saved = useRef<HTMLDivElement>(null);
+  // Tell keyboard and screen reader users the save worked: the button they pressed is far below the message.
+  useEffect(() => {
+    if (state.success) saved.current?.focus();
+  }, [state]);
 
   return (
     <form action={action} noValidate className={forms.form}>
       <ErrorSummary errors={summaryItems(state)} focusToken={state} />
       {state.success && state.message && (
-        <Alert tone="success" title="Saved">
-          {state.message}
-        </Alert>
+        <div ref={saved} tabIndex={-1}>
+          <Alert tone="success" title="Saved">
+            {state.message}
+          </Alert>
+        </div>
       )}
       {scenarioId && <input type="hidden" name="scenarioId" value={scenarioId} />}
       {revision !== undefined && <input type="hidden" name="revision" value={revision} />}

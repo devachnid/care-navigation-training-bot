@@ -13,9 +13,10 @@ export function RevokeForm({ invitationId, who, kind }: { invitationId: string; 
     <form action={action} className={styles.inlineForm}>
       <input type="hidden" name="invitationId" value={invitationId} />
       <ConfirmButton
-        label="Revoke"
-        confirmLabel="Yes, revoke"
-        pendingLabel="Revoking…"
+        label={kind === 'invite' ? 'Cancel invitation' : 'Cancel link'}
+        confirmLabel="Yes, cancel it"
+        cancelLabel="No, keep it"
+        pendingLabel="Cancelling…"
         question={kind === 'invite' ? `${who} will not be able to use the link.` : `The reset link for ${who} will stop working.`}
       />
       {state.message && !state.success && (

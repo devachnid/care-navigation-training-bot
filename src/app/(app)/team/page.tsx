@@ -5,12 +5,18 @@ import { listMembers, type Member } from '@/practices/dal';
 import { listTeamStats, type TeamStats } from '@/practices/team-dal';
 import { Button, DataTable, PageHeader, Section, Tag } from '@/ui';
 import { requireAbility } from '@/app/_lib/guard';
-import { formatDate, formatDateTime, roleLabel } from './format';
+import { formatDate, formatDateTime } from '@/app/_lib/dates';
+import { roleLabel } from '@/app/_lib/labels';
 import { InviteForm } from './invite-form';
 import { RevokeForm } from './revoke-form';
 import styles from './team.module.css';
 
-export const metadata: Metadata = { title: 'Team' };
+// The title is worked out behind the same access check as the page, so someone who may not see this page
+// gets the "Page not found" title, not the name of a page they were told does not exist.
+export async function generateMetadata(): Promise<Metadata> {
+  await requireAbility('team.manage');
+  return { title: 'Team' };
+}
 
 type Row = Member & { stats: TeamStats | undefined };
 
@@ -28,13 +34,13 @@ export default async function TeamPage() {
     <>
       <PageHeader
         title="Team"
-        lead={`Everyone at ${actor.membership.practiceName}, with how their practice calls are going. Choose a name to see their calls or to change what they can do.`}
+        lead={`The staff at ${actor.membership.practiceName}, with how their practice calls are going. Choose a name to see their calls or to change what they can do.`}
         actions={<Button href="#invite">Invite someone</Button>}
       />
 
-      <Section title="People in your practice">
+      <Section title="Staff in your practice">
         <DataTable<Row>
-          caption="People in your practice, with their calls"
+          caption="Staff in your practice, with their calls"
           rows={rows}
           rowKey={r => r.userId}
           columns={[
@@ -46,7 +52,10 @@ export default async function TeamPage() {
                 <>
                   <Link href={`/team/${r.userId}`}>{r.name}</Link>
                   {r.userId === actor.userId && <span className={styles.you}> (you)</span>}
-                  <span className={styles.email}>{r.email}</span>
+                  <span className={styles.email}>
+                    {r.email.split('@')[0]}@<wbr />
+                    {r.email.split('@').slice(1).join('@')}
+                  </span>
                 </>
               ),
             },
@@ -65,7 +74,7 @@ export default async function TeamPage() {
               header: 'Status',
               cell: r => (r.deactivatedAt ? <Tag tone="draft">Deactivated</Tag> : <Tag tone="approved">Active</Tag>),
             },
-            { key: 'calls', header: 'Calls taken', numeric: true, cell: r => (r.stats ?? NO_CALLS).calls },
+            { key: 'calls', header: 'Calls', numeric: true, cell: r => (r.stats ?? NO_CALLS).calls },
             {
               key: 'last',
               header: 'Last call',
@@ -81,7 +90,7 @@ export default async function TeamPage() {
             },
             {
               key: 'unsafe',
-              header: 'Unsafe outcomes',
+              header: 'Unsafe calls',
               numeric: true,
               cell: r => {
                 const n = (r.stats ?? NO_CALLS).unsafeOutcomes;
@@ -122,7 +131,7 @@ export default async function TeamPage() {
       </Section>
 
       {resets.length > 0 && (
-        <Section title="Password reset links not yet used" description="Each works once. Revoke one if it was made by mistake.">
+        <Section title="Password reset links not yet used" description="Each works once. Cancel one if it was made by mistake.">
           <DataTable<PendingInvitation>
             caption="Password reset links waiting to be used"
             rows={resets}

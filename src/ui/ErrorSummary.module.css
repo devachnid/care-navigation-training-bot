@@ -27,7 +27,8 @@
   text-underline-offset: 0.2em;
 }
 
-.list a {
-  display: inline-block;
+/* The link stays inline so a long message that wraps keeps its bullet on the first line.
+   The tap target is made taller with padding on the list item instead. */
+.list li {
   padding: var(--space-2) 0;
 }

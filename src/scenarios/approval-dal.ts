@@ -1,6 +1,6 @@
 import { and, eq, isNull } from 'drizzle-orm';
 import { getDb } from '@/db/client';
-import { memberships, practiceScenarios, users } from '@/db/schema';
+import { memberships, practices, practiceScenarios, users } from '@/db/schema';
 import type { Actor } from '@/policy/actor';
 import { assertMember } from '@/policy/result';
 
@@ -48,4 +48,18 @@ export async function listApproverNames(actor: Actor): Promise<string[]> {
       ),
     );
   return rows.map(r => r.name).sort((a, b) => a.localeCompare(b, 'en-GB'));
+}
+
+/**
+ * Whether the actor's practice lets staff practise on draft scenarios. Just that one setting, for
+ * anyone who manages scenarios (a clinician approver who is not a manager cannot read the full
+ * settings), so the scenario pages can say what is actually true for this practice.
+ */
+export async function getDraftsAllowed(actor: Actor): Promise<boolean> {
+  assertMember(actor, 'scenarios.manage');
+  const [row] = await getDb()
+    .select({ allow: practices.allowDraftScenarios })
+    .from(practices)
+    .where(eq(practices.id, actor.membership.practiceId));
+  return row?.allow === true;
 }

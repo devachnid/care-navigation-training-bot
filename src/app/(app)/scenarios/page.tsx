@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { can } from '@/policy/can';
-import { listApprovalInfo, listApproverNames } from '@/scenarios/approval-dal';
+import { getDraftsAllowed, listApprovalInfo, listApproverNames } from '@/scenarios/approval-dal';
 import { listLibraryNotInPractice, listScenariosForManagement } from '@/scenarios/practice-dal';
 import { Button, Card, DataTable, PageHeader, Section, Tag } from '@/ui';
 import { requireAbility } from '@/app/_lib/guard';
@@ -9,17 +9,23 @@ import { LibraryList } from './library-list';
 import { DIFFICULTY_LABEL, approvalLine } from './labels';
 import styles from './scenarios.module.css';
 
-export const metadata: Metadata = { title: 'Scenarios' };
+// The title is worked out behind the same access check as the page, so someone who may not see this page
+// gets the "Page not found" title, not the name of a page they were told does not exist.
+export async function generateMetadata(): Promise<Metadata> {
+  await requireAbility('scenarios.manage');
+  return { title: 'Scenarios' };
+}
 
 const DIFFICULTY_RANK = { easy: 0, medium: 1, hard: 2 } as const;
 
 export default async function ScenariosPage() {
   const actor = await requireAbility('scenarios.manage');
-  const [list, approvals, library, approvers] = await Promise.all([
+  const [list, approvals, library, approvers, draftsAllowed] = await Promise.all([
     listScenariosForManagement(actor),
     listApprovalInfo(actor),
     listLibraryNotInPractice(actor),
     listApproverNames(actor),
+    getDraftsAllowed(actor),
   ]);
 
   const approvalById = new Map(approvals.map(a => [a.scenarioId, a]));
@@ -34,7 +40,7 @@ export default async function ScenariosPage() {
     <>
       <PageHeader
         title="Scenarios"
-        lead="A scenario is one simulated phone call. Your staff practise on the ones that are approved and shown."
+        lead="A scenario is one simulated phone call. Choose one to read it, change it, try it or approve it."
         actions={
           <Button href="/scenarios/new" size="large">
             Write a new scenario
@@ -49,7 +55,9 @@ export default async function ScenariosPage() {
           back to being a draft until a clinician approves it again.
         </p>
         <p>
-          Staff only see approved scenarios that are shown. Managers and clinicians who can approve can always try drafts.
+          {draftsAllowed
+            ? 'Your practice lets staff practise on drafts as well as approved scenarios (see Settings). Staff see every scenario that is shown.'
+            : 'Staff only see scenarios that are approved and shown. Managers and clinicians who can approve can always try drafts.'}
         </p>
         <p>
           {approvers.length > 0 ? (
@@ -96,7 +104,7 @@ export default async function ScenariosPage() {
                   <Tag tone="draft">{r.approvedRevision !== null ? 'Changed since approval' : 'Draft'}</Tag>
                 ),
             },
-            { key: 'active', header: 'Staff can see it', cell: r => <Tag>{r.active ? 'Shown' : 'Hidden'}</Tag> },
+            { key: 'active', header: 'Shown to staff', cell: r => <Tag>{r.active ? 'Shown' : 'Hidden'}</Tag> },
             { key: 'approval', header: 'Approval', cell: r => approvalLine(r) },
           ]}
         />

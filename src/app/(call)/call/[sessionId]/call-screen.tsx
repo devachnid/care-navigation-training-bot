@@ -57,9 +57,9 @@ export function CallScreen(props: Props) {
           )}
           <div className={styles.actions}>
             <Button variant="go" size="large" onClick={call.start}>
-              {call.error ? 'Try again' : 'Start call'}
+              {call.error ? 'Try again' : 'Start the call'}
             </Button>
-            <Link href="/">Back to scenarios</Link>
+            <Link href="/">Choose a different call</Link>
           </div>
         </>
       )}
@@ -114,7 +114,7 @@ export function CallScreen(props: Props) {
           </div>
           <div className={styles.actions}>
             <Button href={debriefUrl}>See the debrief</Button>
-            <Link href="/">Back to scenarios</Link>
+            <Link href="/">Choose a different call</Link>
           </div>
         </>
       )}

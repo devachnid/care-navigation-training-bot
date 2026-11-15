@@ -3,9 +3,10 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { getDb } from '@/db/client';
 import { memberships, users } from '@/db/schema';
 import { ForbiddenError } from '@/policy/result';
+import { updatePracticeSettings } from '@/practices/dal';
 import { createTestDb } from '@/test/db';
 import { addMember, deactivate, makePractice, seedLibrary } from '@/test/fixtures';
-import { listApprovalInfo, listApproverNames } from './approval-dal';
+import { getDraftsAllowed, listApprovalInfo, listApproverNames } from './approval-dal';
 import { approveScenario, getScenario, listScenariosForManagement, updateScenario } from './practice-dal';
 import { pickContent } from './types';
 
@@ -76,5 +77,32 @@ describe('listApproverNames', () => {
     const p = await makePractice('Approvers C');
     const plain = await addMember(p.practiceId, 'trainee');
     await expect(listApproverNames(plain.actor)).rejects.toBeInstanceOf(ForbiddenError);
+  });
+});
+
+describe('getDraftsAllowed', () => {
+  it("returns this practice's own setting, for a manager and for an approver who is not a manager", async () => {
+    const a = await makePractice('Drafts A');
+    const clinician = await addMember(a.practiceId, 'trainee', true, 'Dr Drafts');
+    expect(await getDraftsAllowed(a.manager.actor)).toBe(false);
+    expect(await getDraftsAllowed(clinician.actor)).toBe(false);
+
+    expect(await updatePracticeSettings(a.manager.actor, { allowDraftScenarios: true })).toEqual({ ok: true });
+    expect(await getDraftsAllowed(a.manager.actor)).toBe(true);
+    expect(await getDraftsAllowed(clinician.actor)).toBe(true);
+  });
+
+  it("never reports another practice's setting", async () => {
+    const a = await makePractice('Drafts C');
+    const b = await makePractice('Drafts D');
+    await updatePracticeSettings(a.manager.actor, { allowDraftScenarios: true });
+    expect(await getDraftsAllowed(a.manager.actor)).toBe(true);
+    expect(await getDraftsAllowed(b.manager.actor)).toBe(false);
+  });
+
+  it('refuses a plain trainee', async () => {
+    const p = await makePractice('Drafts E');
+    const plain = await addMember(p.practiceId, 'trainee');
+    await expect(getDraftsAllowed(plain.actor)).rejects.toBeInstanceOf(ForbiddenError);
   });
 });

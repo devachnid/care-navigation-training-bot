@@ -1,23 +1,13 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import type { SessionStatus } from '@/db/schema';
 import { listOwnSessions, type SessionListItem } from '@/sessions/dal';
 import { formatClock } from '@/call/limit';
 import { Button, DataTable, EmptyState, PageHeader, Tag } from '@/ui';
 import { requireAbility } from '@/app/_lib/guard';
+import { formatDateTime } from '@/app/_lib/dates';
+import { CALL_STATUS } from '@/app/_lib/labels';
 
 export const metadata: Metadata = { title: 'My calls' };
-
-const STATUS: Record<SessionStatus, string> = {
-  created: 'Not started',
-  in_call: 'Not finished',
-  debriefing: 'Debrief in progress',
-  complete: 'Complete',
-  too_short: 'Too short (fail)',
-  failed: 'Debrief failed',
-};
-
-const when = new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Europe/London' });
 
 export default async function HistoryPage() {
   const actor = await requireAbility('sessions.viewOwn');
@@ -47,8 +37,8 @@ export default async function HistoryPage() {
           rows={rows}
           rowKey={r => r.id}
           columns={[
-            { key: 'when', header: 'When', nowrap: true, cell: r => when.format(r.startedAt) },
-            { key: 'title', header: 'Call', rowHeader: true, cell: r => <Link href={`/debrief/${r.id}`}>{r.title}</Link> },
+            { key: 'when', header: 'When', nowrap: true, cell: r => formatDateTime(r.startedAt) },
+            { key: 'title', header: 'Scenario', rowHeader: true, cell: r => <Link href={`/debrief/${r.id}`}>{r.title}</Link> },
             {
               key: 'length',
               header: 'Length',
@@ -58,10 +48,10 @@ export default async function HistoryPage() {
             },
             {
               key: 'result',
-              header: 'Result',
+              header: 'What happened',
               cell: r => (
                 <>
-                  {STATUS[r.status]} {r.unsafe && <Tag tone="unsafe">Unsafe</Tag>}
+                  {CALL_STATUS[r.status]} {r.unsafe && <Tag tone="unsafe">Unsafe</Tag>}
                 </>
               ),
             },
