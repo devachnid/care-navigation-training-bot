@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { getDb } from '@/db/client';
-import { debriefFlags } from '@/db/schema';
+import { debriefFlags, sessions } from '@/db/schema';
 import { ForbiddenError } from '@/policy/result';
 import { approveScenario, listScenariosForManagement } from '@/scenarios/practice-dal';
 import { claimForToken, endCall, saveDebrief, startCall } from '@/sessions/dal';
@@ -75,6 +75,13 @@ describe('flagDebrief', () => {
     const { manager, trainee, sessionId } = await setup();
     expect((await flagDebrief(manager.actor, sessionId, 'The score looks wrong.')).ok).toBe(true);
     expect(await getMyFlag(trainee.actor, sessionId)).toBeNull();
+  });
+
+  it('refuses a report once the transcript has been deleted under the retention period', async () => {
+    const { trainee, sessionId } = await setup();
+    await getDb().update(sessions).set({ transcriptDeletedAt: new Date() }).where(eq(sessions.id, sessionId));
+    expect(await flagDebrief(trainee.actor, sessionId, 'The score looks wrong.')).toMatchObject({ ok: false, code: 'conflict' });
+    expect(await getDb().select().from(debriefFlags).where(eq(debriefFlags.sessionId, sessionId))).toHaveLength(0);
   });
 
   it('needs a reason of 1 to 500 characters', async () => {

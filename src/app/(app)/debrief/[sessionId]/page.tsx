@@ -85,9 +85,13 @@ export default async function DebriefPage({ params }: { params: Promise<{ sessio
 
         {session.status === 'failed' && (
           <Alert tone="error" title="The debrief could not be produced.">
-            The transcript is saved below.
-            {session.isOwn && session.debriefRetriesLeft === 0 && <p>It has been tried three times. Start a new call to get a debrief.</p>}
-            {session.isOwn && session.debriefRetriesLeft > 0 && (
+            {session.transcriptDeletedAt
+              ? 'The transcript has since been deleted, so the debrief cannot be tried again.'
+              : 'The transcript is saved below.'}
+            {session.isOwn && !session.transcriptDeletedAt && session.debriefRetriesLeft === 0 && (
+              <p>It has been tried three times. Start a new call to get a debrief.</p>
+            )}
+            {session.isOwn && !session.transcriptDeletedAt && session.debriefRetriesLeft > 0 && (
               <form action={retryDebriefAction}>
                 <input type="hidden" name="sessionId" value={sessionId} />
                 <SubmitButton pendingLabel="Trying again…">Try the debrief again</SubmitButton>
@@ -149,9 +153,9 @@ export default async function DebriefPage({ params }: { params: Promise<{ sessio
       <Section title="Transcript">
         {session.transcriptDeletedAt ? (
           <Alert tone="info" title="The transcript has been deleted">
-            The transcript and quotes from this call were deleted on {dayOnly.format(session.transcriptDeletedAt)}, because{' '}
-            {actor.membership.practiceName} keeps them for{' '}
-            {session.retentionDays === null ? 'a limited time' : `${session.retentionDays} days`}. The scores are kept.
+            The transcript and quotes from this call were deleted on {dayOnly.format(session.transcriptDeletedAt)}
+            {session.retentionDays === null ? '' : `, because ${actor.membership.practiceName} keeps them for ${session.retentionDays} days`}. The
+            scores are kept.
           </Alert>
         ) : turns.length === 0 ? (
           <p>Nothing was said on this call.</p>

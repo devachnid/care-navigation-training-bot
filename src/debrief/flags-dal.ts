@@ -12,7 +12,8 @@ const NOT_FOUND = 'That debrief could not be found.';
 /**
  * "Report a problem with this debrief". Anyone who can see the debrief (the caller, or a manager of
  * the practice) can report it. One open report each per debrief: a second one is refused until a
- * manager has dealt with the first. The reason is 1 to 500 characters.
+ * manager has dealt with the first. The reason is 1 to 500 characters. Refused once the call's
+ * transcript has been deleted under the practice's retention period.
  */
 export async function flagDebrief(actor: Actor, sessionId: string, reason: string): Promise<Result<{ flagId: string }>> {
   assertMember(actor, 'sessions.viewOwn');
@@ -21,6 +22,9 @@ export async function flagDebrief(actor: Actor, sessionId: string, reason: strin
   if (text.length > FLAG_REASON_MAX) return fail('invalid', `Keep it to ${FLAG_REASON_MAX} characters or fewer.`);
   const session = await getSession(actor, sessionId);
   if (!session || !(await getDebrief(actor, sessionId))) return fail('not_found', NOT_FOUND);
+  if (session.transcriptDeletedAt) {
+    return fail('conflict', 'The transcript of this call has been deleted, so a problem with its debrief can no longer be reported.');
+  }
 
   // One statement, so two quick clicks cannot make two reports.
   const [row] = await queryRows<{ id: string }>(sql`
