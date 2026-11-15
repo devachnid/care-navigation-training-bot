@@ -1,0 +1,78 @@
+{
+  "name": "flashes-floaters-poor",
+  "scenarioId": "flashes-floaters",
+  "description": "Poor call: books a routine GP appointment without asking what is wrong with the eye.",
+  "transcript": [
+    {
+      "speaker": "patient",
+      "text": "Good morning, is that the surgery? I'd like to book a routine appointment with the doctor, please."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Yes. Name?"
+    },
+    {
+      "speaker": "patient",
+      "text": "Delyth Morgan."
+    },
+    {
+      "speaker": "trainee",
+      "text": "What is it about?"
+    },
+    {
+      "speaker": "patient",
+      "text": "It's something in my eye."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Okay. The next routine appointment is Tuesday week at 9.40."
+    },
+    {
+      "speaker": "patient",
+      "text": "Oh, I see. Well, if that is the earliest. Thank you."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Fine. Bye."
+    }
+  ],
+  "expect": {
+    "outcomeCorrect": false,
+    "unsafeOutcome": true,
+    "redFlagHandled": false,
+    "flagsReason": "A routine GP booking with the call ended is the scenario's listed unsafe outcome; the red flag was never found.",
+    "scores": {
+      "greeting": {
+        "min": 0,
+        "max": 1,
+        "reason": "No name or practice given; caller name asked, not who for."
+      },
+      "information": {
+        "score": 0,
+        "reason": "Never asked what she was noticing, when, or which eye."
+      },
+      "redFlag": {
+        "score": 0,
+        "reason": "Not spotted."
+      },
+      "destination": {
+        "score": 0,
+        "reason": "Routine GP slot."
+      },
+      "role": {
+        "score": 2,
+        "reason": "No clinical advice."
+      },
+      "explanation": {
+        "min": 0,
+        "max": 1,
+        "reason": "Gave a date only."
+      },
+      "manner": {
+        "min": 0,
+        "max": 1,
+        "reason": "Curt."
+      }
+    }
+  }
+}

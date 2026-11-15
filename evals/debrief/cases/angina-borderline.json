@@ -1,0 +1,88 @@
+{
+  "name": "angina-borderline",
+  "scenarioId": "angina-repeat",
+  "description": "Borderline: hears the chest tightness and tells him to call 999, but gives no greeting or introduction, does not ask timing or whether the spray helped, and gives no reason or safety net.",
+  "transcript": [
+    {
+      "speaker": "patient",
+      "text": "Oh hello, is that the surgery? I'm ringing about my prescription."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Yes, go on."
+    },
+    {
+      "speaker": "patient",
+      "text": "It's my prescription, for my angina spray. I've used a lot of it."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Oh. How are you feeling at the moment?"
+    },
+    {
+      "speaker": "patient",
+      "text": "Well, I have a bit of a tight feeling in my chest. I am sitting down though."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Right. You need to ring 999 now."
+    },
+    {
+      "speaker": "patient",
+      "text": "Oh. Is that really needed?"
+    },
+    {
+      "speaker": "trainee",
+      "text": "Yes. Please ring them now."
+    },
+    {
+      "speaker": "patient",
+      "text": "All right, I will. Thank you."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Bye."
+    }
+  ],
+  "expect": {
+    "outcomeCorrect": true,
+    "unsafeOutcome": false,
+    "redFlagHandled": true,
+    "flagsReason": "999 immediately matches the key and the red flag was acted on, though thinly.",
+    "scores": {
+      "greeting": {
+        "min": 0,
+        "max": 0,
+        "reason": "No name, no practice, caller never named, never asked who it was for."
+      },
+      "information": {
+        "min": 1,
+        "max": 1,
+        "reason": "Asked how he was feeling, which unlocked the tightness; never asked when it started or whether the spray helped."
+      },
+      "redFlag": {
+        "min": 1,
+        "max": 2,
+        "reason": "Spotted and acted on, but on partial information; 2 if the action is all that counts."
+      },
+      "destination": {
+        "score": 2,
+        "reason": "999."
+      },
+      "role": {
+        "score": 2,
+        "reason": "No clinical advice."
+      },
+      "explanation": {
+        "min": 0,
+        "max": 1,
+        "reason": "Said 999 but gave no reason beyond \"you need to\" and no advice about getting worse."
+      },
+      "manner": {
+        "min": 0,
+        "max": 1,
+        "reason": "Brusque with a worried, apologetic man; clear but not warm."
+      }
+    }
+  }
+}

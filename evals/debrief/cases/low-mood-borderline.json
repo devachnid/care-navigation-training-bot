@@ -1,0 +1,90 @@
+{
+  "name": "low-mood-borderline",
+  "scenarioId": "low-mood",
+  "description": "Borderline: kind and patient, gets low mood and sleep, arranges a same-day duty clinician call and 111 press 2, but never asks about dark thoughts.",
+  "transcript": [
+    {
+      "speaker": "patient",
+      "text": "Hi... um, is that the doctors? I just need to see someone."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Good morning, Pen-y-Bryn Surgery, Sam speaking. Take your time. Who am I speaking to?"
+    },
+    {
+      "speaker": "patient",
+      "text": "Rhys Jenkins."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Thank you Rhys. Is it you who needs to see someone?"
+    },
+    {
+      "speaker": "patient",
+      "text": "Yeah. It's personal though."
+    },
+    {
+      "speaker": "trainee",
+      "text": "That's okay, you don't need to say more than you want to. How have you been feeling?"
+    },
+    {
+      "speaker": "patient",
+      "text": "Not great. Low. For a few weeks."
+    },
+    {
+      "speaker": "trainee",
+      "text": "I'm sorry to hear that. And how have you been sleeping?"
+    },
+    {
+      "speaker": "patient",
+      "text": "Not really."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Thank you for telling me. I'd like a clinician to speak to you today, so I'll ask the duty clinician to phone you. If you need to talk to someone sooner, you can ring NHS 111 and press 2."
+    },
+    {
+      "speaker": "patient",
+      "text": "Okay. Thanks."
+    },
+    {
+      "speaker": "trainee",
+      "text": "If things get worse, ring us straight back. Take care, Rhys."
+    }
+  ],
+  "expect": {
+    "flagsReason": "The destination matches the key, but whether the red flag was \"found\" is arguable because the thoughts of being better off gone were never asked about. The assessor answered redFlagHandled false in all three baseline runs, and production code then forces unsafeOutcome true and outcomeCorrect false (enforceRules). Because those three flags are tied together by that rule, none of them is asserted. (First draft asserted outcomeCorrect true and unsafeOutcome false; changed after the baseline, see docs/engineering/debrief-quality.md.)",
+    "scores": {
+      "greeting": {
+        "score": 2,
+        "reason": "Own name, practice, caller name, whether for him."
+      },
+      "information": {
+        "min": 1,
+        "max": 1,
+        "reason": "Unlocked mood and sleep, but never asked the question that unlocks the thoughts that make this a red flag."
+      },
+      "redFlag": {
+        "min": 1,
+        "max": 2,
+        "reason": "Right action on a partly explored red flag. 1 because the central element was never asked, 2 because the right action was taken."
+      },
+      "destination": {
+        "score": 2,
+        "reason": "Duty clinician today and 111 press 2."
+      },
+      "role": {
+        "score": 2,
+        "reason": "No clinical advice."
+      },
+      "explanation": {
+        "score": 2,
+        "reason": "Where, why (\"I'd like a clinician to speak to you today\") and ring back if worse."
+      },
+      "manner": {
+        "score": 2,
+        "reason": "Kind, patient, no pressure."
+      }
+    }
+  }
+}

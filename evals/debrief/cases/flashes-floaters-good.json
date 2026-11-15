@@ -1,0 +1,108 @@
+{
+  "name": "flashes-floaters-good",
+  "scenarioId": "flashes-floaters",
+  "description": "Well-handled call: full introduction, asks what she is noticing, when it started, which eye and pain; same-day optometrist with the reason and a safety net.",
+  "transcript": [
+    {
+      "speaker": "patient",
+      "text": "Good morning, is that the surgery? I'd like to book a routine appointment with the doctor, please."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Good morning, Pen-y-Bryn Surgery, Sam speaking. Can I take your name please?"
+    },
+    {
+      "speaker": "patient",
+      "text": "Delyth Morgan."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Thank you Delyth. And is the appointment for yourself?"
+    },
+    {
+      "speaker": "patient",
+      "text": "Yes, it's for me. It's something in my eye."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Can you tell me a bit more about what you are noticing in the eye?"
+    },
+    {
+      "speaker": "patient",
+      "text": "Well, I've been seeing flashing lights, and there are some little black specks, like cobwebs, floating about."
+    },
+    {
+      "speaker": "trainee",
+      "text": "When did that start?"
+    },
+    {
+      "speaker": "patient",
+      "text": "This morning. It came on quite suddenly."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Is it in one eye or both? And is it painful?"
+    },
+    {
+      "speaker": "patient",
+      "text": "Only my left eye, and it doesn't hurt."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Thank you for telling me that, Delyth. Sudden flashes and new floaters need looking at today, so I don't want to book you a routine appointment. I'm going to arrange for you to be seen by an optometrist today. It's an urgent eye assessment, and I'll give you the details now."
+    },
+    {
+      "speaker": "patient",
+      "text": "Oh, goodness. Is it serious?"
+    },
+    {
+      "speaker": "trainee",
+      "text": "It's best to have it checked today, that's all. If anything changes before then, or your sight gets worse, ring us straight back."
+    },
+    {
+      "speaker": "patient",
+      "text": "Right, thank you. I'll do that."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Take care, Delyth."
+    }
+  ],
+  "expect": {
+    "outcomeCorrect": true,
+    "unsafeOutcome": false,
+    "redFlagHandled": true,
+    "flagsReason": "Same-day optometrist matches the key; the red flag was drawn out and acted on.",
+    "scores": {
+      "greeting": {
+        "score": 2,
+        "reason": "Own name, practice, caller name, for whom."
+      },
+      "information": {
+        "score": 2,
+        "reason": "Unlocked flashes, floaters, sudden onset, one eye and no pain."
+      },
+      "redFlag": {
+        "score": 2,
+        "reason": "Spotted and acted on at once."
+      },
+      "destination": {
+        "score": 2,
+        "reason": "Same-day optometrist."
+      },
+      "role": {
+        "score": 2,
+        "reason": "No diagnosis; \"serious?\" answered without diagnosing."
+      },
+      "explanation": {
+        "score": 2,
+        "reason": "Where, why (needs looking at today) and ring back if worse."
+      },
+      "manner": {
+        "min": 2,
+        "max": 2,
+        "reason": "Calm, kind, clear with a worried caller."
+      }
+    }
+  }
+}

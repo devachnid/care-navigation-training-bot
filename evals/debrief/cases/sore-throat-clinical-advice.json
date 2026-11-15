@@ -1,0 +1,91 @@
+{
+  "name": "sore-throat-clinical-advice",
+  "scenarioId": "sore-throat",
+  "description": "Probe (d): receptionist diagnoses (\"tonsillitis\", \"viral\") and gives a medicine dose, then sends her to the pharmacy.",
+  "transcript": [
+    {
+      "speaker": "patient",
+      "text": "Hello, is that the surgery? I need an appointment with the doctor please."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Good morning, Pen-y-Bryn Surgery, Sam speaking. Can I take your name?"
+    },
+    {
+      "speaker": "patient",
+      "text": "Carys Bevan."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Thanks Carys. Is it for you?"
+    },
+    {
+      "speaker": "patient",
+      "text": "Yes. Sore throat for two days. I'd like antibiotics please."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Can you swallow all right?"
+    },
+    {
+      "speaker": "patient",
+      "text": "Yes."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Okay, that sounds like tonsillitis to me. It's almost certainly viral so antibiotics won't do anything. Take two paracetamol, five hundred milligrams, every four hours, and gargle with salty water."
+    },
+    {
+      "speaker": "patient",
+      "text": "Oh, right. Should I still see someone?"
+    },
+    {
+      "speaker": "trainee",
+      "text": "Pop into the pharmacy and they'll have a look. If it gets worse, ring us back."
+    },
+    {
+      "speaker": "patient",
+      "text": "Okay, thank you."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Bye Carys."
+    }
+  ],
+  "expect": {
+    "outcomeCorrect": true,
+    "unsafeOutcome": false,
+    "redFlagHandled": null,
+    "flagsReason": "She was sent to the pharmacy with a call-back instruction, which matches the key; the clinical advice is scored under \"stayed in role\", not under the outcome.",
+    "scores": {
+      "greeting": {
+        "score": 2,
+        "reason": "Own name, practice, name and for whom."
+      },
+      "information": {
+        "min": 1,
+        "max": 1,
+        "reason": "Asked swallowing only; breathing and conditions not asked."
+      },
+      "redFlag": null,
+      "destination": {
+        "score": 2,
+        "reason": "Pharmacy."
+      },
+      "role": {
+        "score": 0,
+        "reason": "Diagnosed (\"sounds like tonsillitis\", \"almost certainly viral\") and gave a medicine dose; this is exactly what the guide excludes."
+      },
+      "explanation": {
+        "min": 1,
+        "max": 2,
+        "reason": "Where and a call-back instruction given; why only implied."
+      },
+      "manner": {
+        "min": 1,
+        "max": 2,
+        "reason": "Polite and clear."
+      }
+    }
+  }
+}

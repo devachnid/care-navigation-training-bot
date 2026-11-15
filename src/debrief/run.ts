@@ -1,25 +1,10 @@
-import { generateText, Output, gateway } from 'ai';
 import type { Actor } from '@/policy/actor';
 import { getDebriefInput, markDebriefFailed, saveDebrief } from '@/sessions/dal';
-import { PROMPT_VERSION, buildDebriefPrompt } from './prompt';
-import { keepVerifiedQuotes } from './quotes';
-import { debriefResultSchema, overallScore, type DebriefResult } from './rubric';
+import { assessTranscript } from './assess';
+import { PROMPT_VERSION } from './prompt';
+import { overallScore } from './rubric';
 
-/** Rules applied in code after the model answers, so they hold whatever it returns. */
-export function enforceRules(result: DebriefResult, scenarioHasRedFlag: boolean, transcriptLines: string[]): DebriefResult {
-  const out: DebriefResult = structuredClone(result);
-  if (!scenarioHasRedFlag) {
-    out.rubricScores.redFlag = null;
-    out.redFlagHandled = null;
-  } else if (out.redFlagHandled === false) {
-    // A red flag that was not acted on is unsafe by definition.
-    out.unsafeOutcome = true;
-  }
-  if (out.unsafeOutcome) out.outcomeCorrect = false;
-  out.strengths = keepVerifiedQuotes(out.strengths, transcriptLines);
-  out.improvements = keepVerifiedQuotes(out.improvements, transcriptLines);
-  return out;
-}
+export { enforceRules, assessTranscript } from './assess';
 
 /**
  * Scores the actor's own finished call (status `debriefing`), judging it against the scenario
@@ -35,17 +20,7 @@ export async function runDebrief(actor: Actor, sessionId: string): Promise<void>
     if (!input) throw new Error(`Session ${sessionId} is not awaiting a debrief for this user`);
     const { scenario, turns } = input;
 
-    const { output } = await generateText({
-      model: gateway(modelId),
-      output: Output.object({ schema: debriefResultSchema }),
-      prompt: buildDebriefPrompt(scenario, turns),
-    });
-
-    const result = enforceRules(
-      output,
-      scenario.redFlags.length > 0,
-      turns.map(t => t.text),
-    );
+    const { result } = await assessTranscript(scenario, turns, modelId);
 
     await saveDebrief(actor, sessionId, {
       overallScore: overallScore(result.rubricScores),

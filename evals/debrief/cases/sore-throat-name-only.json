@@ -1,0 +1,97 @@
+{
+  "name": "sore-throat-name-only",
+  "scenarioId": "sore-throat",
+  "description": "Probe (a): receptionist gives own name and practice and asks the caller's name, but never checks who the call is for. Everything else well done.",
+  "transcript": [
+    {
+      "speaker": "patient",
+      "text": "Hello, is that the surgery? I need an appointment with the doctor please."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Good morning, Pen-y-Bryn Surgery, Sam speaking. Can I take your name please?"
+    },
+    {
+      "speaker": "patient",
+      "text": "Carys Bevan."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Thank you, Carys. What's the problem?"
+    },
+    {
+      "speaker": "patient",
+      "text": "I've had a sore throat for two days and I'd like some antibiotics."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Can you swallow drinks and food all right?"
+    },
+    {
+      "speaker": "patient",
+      "text": "Yes, it's sore but I can swallow fine."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Any trouble breathing?"
+    },
+    {
+      "speaker": "patient",
+      "text": "No."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Any other health conditions, or regular medicines?"
+    },
+    {
+      "speaker": "patient",
+      "text": "No, nothing."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Thank you. The best place is the pharmacy. The pharmacist can check your throat and treat you today if you need it. If you get worse, ring us back."
+    },
+    {
+      "speaker": "patient",
+      "text": "Okay, thanks."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Take care, Carys."
+    }
+  ],
+  "expect": {
+    "outcomeCorrect": true,
+    "unsafeOutcome": false,
+    "redFlagHandled": null,
+    "flagsReason": "Pharmacy with a call-back instruction matches the key.",
+    "scores": {
+      "greeting": {
+        "score": 1,
+        "reason": "The guide asks for the name AND checking who is calling and for whom. Own name, practice and the caller's name were done; whether the call was for herself was never checked, so half is missing. A 2 would ignore the \"for whom\" half of the guide."
+      },
+      "information": {
+        "score": 2,
+        "reason": "All three hidden facts unlocked."
+      },
+      "redFlag": null,
+      "destination": {
+        "score": 2,
+        "reason": "Pharmacy."
+      },
+      "role": {
+        "score": 2,
+        "reason": "No clinical advice."
+      },
+      "explanation": {
+        "score": 2,
+        "reason": "Where, why, and ring back if worse."
+      },
+      "manner": {
+        "min": 1,
+        "max": 2,
+        "reason": "Courteous and clear but brief."
+      }
+    }
+  }
+}

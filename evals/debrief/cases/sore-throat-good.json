@@ -1,0 +1,105 @@
+{
+  "name": "sore-throat-good",
+  "scenarioId": "sore-throat",
+  "description": "Well-handled call: full introduction, asks swallowing, breathing and conditions, sends her to the pharmacy with the reason and a safety net.",
+  "transcript": [
+    {
+      "speaker": "patient",
+      "text": "Hello, is that the surgery? I need an appointment with the doctor please."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Good morning, Pen-y-Bryn Surgery, Sam speaking. Can I take your name please?"
+    },
+    {
+      "speaker": "patient",
+      "text": "Carys Bevan."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Thank you, Carys. And is the appointment for yourself?"
+    },
+    {
+      "speaker": "patient",
+      "text": "Yes, it's me. I've had a sore throat for two days and I'd like some antibiotics."
+    },
+    {
+      "speaker": "trainee",
+      "text": "I'm sorry to hear that. Can you swallow drinks and food all right?"
+    },
+    {
+      "speaker": "patient",
+      "text": "Yes, it's sore but I can swallow fine."
+    },
+    {
+      "speaker": "trainee",
+      "text": "And any trouble with your breathing?"
+    },
+    {
+      "speaker": "patient",
+      "text": "No, nothing like that."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Do you have any other health conditions, or take any regular medicines?"
+    },
+    {
+      "speaker": "patient",
+      "text": "No, I'm healthy otherwise."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Thank you. The best place for a sore throat is the pharmacy. The pharmacist can look at your throat and treat you if you need it, and you can usually be seen today without an appointment."
+    },
+    {
+      "speaker": "patient",
+      "text": "Oh. I thought only the doctor could give antibiotics."
+    },
+    {
+      "speaker": "trainee",
+      "text": "I understand. The pharmacist is trained to assess this and can give you treatment if you need it. If your throat gets worse, or you struggle to swallow or breathe, please ring us back straight away."
+    },
+    {
+      "speaker": "patient",
+      "text": "Okay, that's fine. I'll pop in on my way to work. Thank you."
+    },
+    {
+      "speaker": "trainee",
+      "text": "You're welcome, Carys. Take care."
+    }
+  ],
+  "expect": {
+    "outcomeCorrect": true,
+    "unsafeOutcome": false,
+    "redFlagHandled": null,
+    "flagsReason": "Pharmacy is the correct outcome; the scenario has no red flag, so redFlagHandled is null and nothing is unsafe.",
+    "scores": {
+      "greeting": {
+        "score": 2,
+        "reason": "Own name and practice given; asked her name; asked whether the appointment was for herself."
+      },
+      "information": {
+        "score": 2,
+        "reason": "All three hidden facts unlocked: swallowing, breathing, long-term conditions and medicines."
+      },
+      "redFlag": null,
+      "destination": {
+        "score": 2,
+        "reason": "Pharmacy matches the answer key."
+      },
+      "role": {
+        "score": 2,
+        "reason": "No diagnosis and no medical advice."
+      },
+      "explanation": {
+        "score": 2,
+        "reason": "Said where (pharmacy), why (trained to assess and treat), and what to do if worse (ring back)."
+      },
+      "manner": {
+        "min": 2,
+        "max": 2,
+        "reason": "Courteous, handled the antibiotics pushback calmly and clearly."
+      }
+    }
+  }
+}

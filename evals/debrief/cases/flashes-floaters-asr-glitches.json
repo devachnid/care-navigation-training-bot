@@ -1,0 +1,109 @@
+{
+  "name": "flashes-floaters-asr-glitches",
+  "scenarioId": "flashes-floaters",
+  "description": "Probe (j): the good call again, but the transcript has speech-recognition glitches (misheard words, missing punctuation, filler). Must be scored as the good call.",
+  "transcript": [
+    {
+      "speaker": "patient",
+      "text": "good morning is that the surgery i'd like to book a routine appointment with the doctor please"
+    },
+    {
+      "speaker": "trainee",
+      "text": "good morning pen the bryn surgery sam speaking can i take your name please"
+    },
+    {
+      "speaker": "patient",
+      "text": "delith morgan"
+    },
+    {
+      "speaker": "trainee",
+      "text": "thank you delith and is the appointment for yourself"
+    },
+    {
+      "speaker": "patient",
+      "text": "yes it's for me it's something in my eye"
+    },
+    {
+      "speaker": "trainee",
+      "text": "can you tell me what you are noticing in the eye"
+    },
+    {
+      "speaker": "patient",
+      "text": "well i've been seeing flashing lights and some little black specks like cob webs floating about"
+    },
+    {
+      "speaker": "trainee",
+      "text": "and when did that start"
+    },
+    {
+      "speaker": "patient",
+      "text": "this morning it came on very sudden"
+    },
+    {
+      "speaker": "trainee",
+      "text": "is it one eye or both and is it sore"
+    },
+    {
+      "speaker": "patient",
+      "text": "only my left eye and it doesn't hurt"
+    },
+    {
+      "speaker": "trainee",
+      "text": "thank you that needs looking at today so i won't book a routine appointment i'm going to arrange for you to be seen by an optimist today it's an urgent eye check"
+    },
+    {
+      "speaker": "patient",
+      "text": "oh goodness all right"
+    },
+    {
+      "speaker": "trainee",
+      "text": "if anything changes or your sight gets worse before then please ring us straight back"
+    },
+    {
+      "speaker": "patient",
+      "text": "yes i will thank you"
+    },
+    {
+      "speaker": "trainee",
+      "text": "take care delith"
+    }
+  ],
+  "expect": {
+    "outcomeCorrect": true,
+    "unsafeOutcome": false,
+    "redFlagHandled": true,
+    "flagsReason": "\"Optimist\" for optometrist and \"Delith\" for Delyth are recognition glitches; the call is the same as the good call and the prompt says to ignore small glitches.",
+    "scores": {
+      "greeting": {
+        "score": 2,
+        "reason": "Own name, practice, caller name and for whom, despite misspellings."
+      },
+      "information": {
+        "score": 2,
+        "reason": "All four hidden facts unlocked."
+      },
+      "redFlag": {
+        "score": 2,
+        "reason": "Spotted and acted on."
+      },
+      "destination": {
+        "min": 2,
+        "max": 2,
+        "reason": "Same-day urgent eye check by an \"optimist\" read as optometrist; the intent is clear."
+      },
+      "role": {
+        "score": 2,
+        "reason": "No clinical advice."
+      },
+      "explanation": {
+        "score": 2,
+        "reason": "Where, why and ring back if worse."
+      },
+      "manner": {
+        "min": 1,
+        "max": 2,
+        "reason": "Courteous and clear; slightly less warmth than the best call."
+      }
+    }
+  }
+}

@@ -1,0 +1,102 @@
+{
+  "name": "flashes-floaters-routine-only",
+  "scenarioId": "flashes-floaters",
+  "description": "Probe (e): receptionist asks well, hears flashes and sudden onset, then offers only a routine GP appointment.",
+  "transcript": [
+    {
+      "speaker": "patient",
+      "text": "Good morning, is that the surgery? I'd like to book a routine appointment with the doctor, please."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Good morning, Pen-y-Bryn Surgery, Sam speaking. Can I take your name?"
+    },
+    {
+      "speaker": "patient",
+      "text": "Delyth Morgan."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Thank you Delyth. Is it you who needs to be seen?"
+    },
+    {
+      "speaker": "patient",
+      "text": "Yes, it's something in my eye."
+    },
+    {
+      "speaker": "trainee",
+      "text": "What are you noticing with the eye?"
+    },
+    {
+      "speaker": "patient",
+      "text": "I've been seeing flashing lights, and some black specks like cobwebs."
+    },
+    {
+      "speaker": "trainee",
+      "text": "When did it start?"
+    },
+    {
+      "speaker": "patient",
+      "text": "This morning, quite suddenly."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Is it one eye or both, and does it hurt?"
+    },
+    {
+      "speaker": "patient",
+      "text": "Just the one eye, and it doesn't hurt."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Okay, I'll book you a routine appointment with the doctor. Next Thursday at ten past nine is the first one."
+    },
+    {
+      "speaker": "patient",
+      "text": "Oh. Right, thank you."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Lovely. Goodbye Delyth."
+    }
+  ],
+  "expect": {
+    "outcomeCorrect": false,
+    "unsafeOutcome": true,
+    "redFlagHandled": false,
+    "flagsReason": "Routine GP booking after hearing the red flag is the listed unsafe outcome; she found the red flag but did not act on it, so redFlagHandled is false.",
+    "scores": {
+      "greeting": {
+        "score": 2,
+        "reason": "Own name, practice, caller name, for whom."
+      },
+      "information": {
+        "score": 2,
+        "reason": "All four hidden facts unlocked."
+      },
+      "redFlag": {
+        "min": 0,
+        "max": 1,
+        "reason": "Drew the red flag out but did not act on it. 1 for the spotting, 0 because the guide says \"and acted on it\"."
+      },
+      "destination": {
+        "score": 0,
+        "reason": "Routine GP slot, which the key rules out."
+      },
+      "role": {
+        "score": 2,
+        "reason": "No clinical advice."
+      },
+      "explanation": {
+        "min": 0,
+        "max": 1,
+        "reason": "Gave a date; no why and no safety net."
+      },
+      "manner": {
+        "min": 1,
+        "max": 2,
+        "reason": "Courteous."
+      }
+    }
+  }
+}
