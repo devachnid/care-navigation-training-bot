@@ -4,7 +4,7 @@ import { listAuditEntries, type AuditEntry } from '@/audit/dal';
 import { getPracticeSettings } from '@/practices/dal';
 import { DataTable, PageHeader, Section } from '@/ui';
 import { requireAbility } from '@/app/_lib/guard';
-import { formatDateTime } from '../team/format';
+import { formatDateTime } from '@/app/_lib/dates';
 import { SettingsForm } from './settings-form';
 
 export const metadata: Metadata = { title: 'Settings' };

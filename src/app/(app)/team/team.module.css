@@ -78,5 +78,5 @@
   color: var(--muted);
   font-size: var(--text-s);
   font-weight: normal;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
 }

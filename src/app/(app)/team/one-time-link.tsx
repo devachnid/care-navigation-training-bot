@@ -1,7 +1,8 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import { Alert, CopyField } from '@/ui';
-import { formatDateTime } from './format';
+import { formatDateTime } from '@/app/_lib/dates';
 import type { LinkState } from './state';
 import styles from './team.module.css';
 
@@ -13,7 +14,13 @@ export function OneTimeLink({ link, kind }: { link: NonNullable<LinkState['link'
   const url = `${typeof window === 'undefined' ? '' : window.location.origin}/invite/${link.token}`;
   const expires = formatDateTime(new Date(link.expiresAt));
   const isInvite = kind === 'invite';
+  const box = useRef<HTMLDivElement>(null);
+  // The button pressed can be well away from the link: move focus to it so nobody has to hunt for it.
+  useEffect(() => {
+    box.current?.focus();
+  }, []);
   return (
+    <div ref={box} tabIndex={-1}>
     <Alert tone="success" title={isInvite ? `Invitation link for ${link.name}` : `Password reset link${link.name ? ` for ${link.name}` : ''}`}>
       <div className={styles.link}>
         <CopyField label={isInvite ? 'Invitation link' : 'Password reset link'} value={url} />
@@ -32,5 +39,6 @@ export function OneTimeLink({ link, kind }: { link: NonNullable<LinkState['link'
         </ul>
       </div>
     </Alert>
+    </div>
   );
 }

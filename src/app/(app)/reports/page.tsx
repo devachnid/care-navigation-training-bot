@@ -6,33 +6,19 @@ import {
   getStaffMatrix,
   getSummary,
   listRecentUnsafe,
-  type CallResult,
   type MatrixStaff,
   type ScenarioRow,
   type UnsafeCall,
 } from '@/reports/dal';
 import { PERIODS, PERIOD_LABEL, parsePeriod, type Period } from '@/reports/period';
-import { Button, DataTable, EmptyState, PageHeader, Section, Stat, StatGroup, SubNav, SubmitButton, Tag } from '@/ui';
-import type { TagTone } from '@/ui';
+import { Button, DataTable, EmptyState, PageHeader, Section, Stat, StatGroup, SubNav, SubmitButton, Tag, VisuallyHidden } from '@/ui';
+import { formatDateTime } from '@/app/_lib/dates';
 import { requireAbility } from '@/app/_lib/guard';
+import { DIFFICULTY_LABEL, LATEST_RESULT } from '@/app/_lib/labels';
 import { resolveFlagAction } from './actions';
 import styles from './reports.module.css';
 
 export const metadata: Metadata = { title: 'Reports' };
-
-const when = new Intl.DateTimeFormat('en-GB', {
-  dateStyle: 'medium',
-  timeStyle: 'short',
-  timeZone: 'Europe/London',
-});
-
-const RESULT: Record<CallResult, { label: string; tone: TagTone }> = {
-  passed: { label: 'Passed', tone: 'approved' },
-  not_yet: { label: 'Not yet', tone: 'medium' },
-  unsafe: { label: 'Unsafe', tone: 'unsafe' },
-};
-
-const DIFFICULTY = { easy: 'Easy', medium: 'Medium', hard: 'Hard' } as const;
 
 const periodHref = (p: Period) => `/reports?period=${p}`;
 
@@ -110,15 +96,15 @@ export default async function ReportsPage(props: PageProps<'/reports'>) {
             description={`Each person’s latest call on each scenario, ${periodLabel}, with their best score. Select a result to read that debrief.`}
           >
             {matrix.scenarios.length === 0 ? (
-              <EmptyState title="No scenarios are switched on" headingLevel={3}>
-                Switch on at least one scenario so your staff have something to practise.
+              <EmptyState title="No scenarios are shown to staff" headingLevel={3}>
+                Show at least one scenario to staff, so they have something to practise.
               </EmptyState>
             ) : (
               <DataTable<MatrixStaff>
                 caption={`Latest result for each person and scenario, ${periodLabel}`}
                 rows={matrix.staff}
                 rowKey={r => r.userId}
-                empty="Nobody has an active place in your practice."
+                empty="There are no active staff in your practice."
                 columns={[
                   {
                     key: 'name',
@@ -135,19 +121,18 @@ export default async function ReportsPage(props: PageProps<'/reports'>) {
                     header: (
                       <span className={styles.scenarioHead}>
                         {s.title}
-                        <span className={styles.difficulty}>{DIFFICULTY[s.difficulty]}</span>
+                        <span className={styles.difficulty}>{DIFFICULTY_LABEL[s.difficulty]}</span>
                       </span>
                     ),
                     cell: (r: MatrixStaff) => {
                       const cell = r.cells[s.id];
                       if (!cell) return <span className={styles.notTried}>Not tried</span>;
                       return (
-                        <Link
-                          href={`/debrief/${cell.sessionId}`}
-                          className={styles.result}
-                          aria-label={`${RESULT[cell.result].label}, best ${cell.bestScore}%. Open ${r.name}’s latest debrief for ${s.title}`}
-                        >
-                          <Tag tone={RESULT[cell.result].tone}>{RESULT[cell.result].label}</Tag>
+                        <Link href={`/debrief/${cell.sessionId}`} className={styles.result}>
+                          <VisuallyHidden>
+                            {r.name}, {s.title}, latest call:{' '}
+                          </VisuallyHidden>
+                          <Tag tone={LATEST_RESULT[cell.result].tone}>{LATEST_RESULT[cell.result].label}</Tag>
                           <span className={styles.best}>Best {cell.bestScore}%</span>
                         </Link>
                       );
@@ -160,7 +145,7 @@ export default async function ReportsPage(props: PageProps<'/reports'>) {
 
           <Section
             title="By scenario"
-            description={`Every call made ${periodLabel}, including on scenarios that have since been changed or switched off.`}
+            description={`Every call made ${periodLabel}, including on scenarios that have since been changed or hidden.`}
           >
             <DataTable<ScenarioRow>
               caption={`Results for each scenario, ${periodLabel}`}
@@ -176,7 +161,7 @@ export default async function ReportsPage(props: PageProps<'/reports'>) {
                 {
                   key: 'difficulty',
                   header: 'Difficulty',
-                  cell: r => DIFFICULTY[r.difficulty],
+                  cell: r => DIFFICULTY_LABEL[r.difficulty],
                 },
                 {
                   key: 'attempts',
@@ -229,7 +214,7 @@ export default async function ReportsPage(props: PageProps<'/reports'>) {
                     key: 'when',
                     header: 'When',
                     nowrap: true,
-                    cell: r => when.format(r.startedAt),
+                    cell: r => formatDateTime(r.startedAt),
                   },
                   {
                     key: 'who',
@@ -274,7 +259,7 @@ export default async function ReportsPage(props: PageProps<'/reports'>) {
                 key: 'when',
                 header: 'When',
                 nowrap: true,
-                cell: r => when.format(r.createdAt),
+                cell: r => formatDateTime(r.createdAt),
               },
               {
                 key: 'reason',

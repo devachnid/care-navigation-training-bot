@@ -2,32 +2,21 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { formatClock } from '@/call/limit';
-import type { SessionStatus } from '@/db/schema';
 import { getMember } from '@/practices/dal';
 import { listMemberProgress, type MemberScenarioProgress } from '@/practices/team-dal';
 import { listPracticeSessions, type SessionListItem } from '@/sessions/dal';
 import { DataTable, PageHeader, Section, Tag } from '@/ui';
 import { requireAbility } from '@/app/_lib/guard';
-import { formatDate, formatDateTime, roleLabel } from '../format';
+import { formatDate, formatDateTime } from '@/app/_lib/dates';
+import { CALL_STATUS, LATEST_RESULT, roleLabel } from '@/app/_lib/labels';
 import { ChangeAccess, ChangeApprover, ChangeRole, ResetLink } from '../person-actions';
 import styles from '../team.module.css';
 
-export const metadata: Metadata = { title: 'Team member' };
-
-const STATUS: Record<SessionStatus, string> = {
-  created: 'Not started',
-  in_call: 'Not finished',
-  debriefing: 'Debrief in progress',
-  complete: 'Complete',
-  too_short: 'Too short (fail)',
-  failed: 'Debrief failed',
-};
-
-const LATEST: Record<MemberScenarioProgress['latest'], { label: string; tone: 'approved' | 'draft' | 'unsafe' }> = {
-  passed: { label: 'Passed', tone: 'approved' },
-  not_yet: { label: 'Not yet', tone: 'draft' },
-  unsafe: { label: 'Unsafe', tone: 'unsafe' },
-};
+export async function generateMetadata({ params }: { params: Promise<{ userId: string }> }): Promise<Metadata> {
+  const actor = await requireAbility('team.manage');
+  const person = await getMember(actor, (await params).userId);
+  return { title: person ? `${person.name} | Team` : 'Team' };
+}
 
 export default async function PersonPage({ params }: { params: Promise<{ userId: string }> }) {
   const actor = await requireAbility('team.manage');
@@ -81,20 +70,20 @@ export default async function PersonPage({ params }: { params: Promise<{ userId:
         </div>
       </Section>
 
-      <Section title="Progress by scenario" description="Calls that have been marked, grouped by scenario.">
+      <Section title="Progress by scenario" description="Calls that have a debrief, grouped by scenario.">
         <DataTable<MemberScenarioProgress>
           caption={`${person.name}’s progress by scenario`}
           rows={progress}
           rowKey={r => r.practiceScenarioId}
-          empty="No marked calls yet."
+          empty="No calls with a debrief yet."
           columns={[
             { key: 'title', header: 'Scenario', rowHeader: true, cell: r => r.title },
-            { key: 'attempts', header: 'Attempts', numeric: true, cell: r => r.attempts },
+            { key: 'attempts', header: 'Calls', numeric: true, cell: r => r.attempts },
             { key: 'best', header: 'Best score', numeric: true, nowrap: true, cell: r => `${r.bestScore}%` },
             {
               key: 'latest',
-              header: 'Latest result',
-              cell: r => <Tag tone={LATEST[r.latest].tone}>{LATEST[r.latest].label}</Tag>,
+              header: 'Latest call',
+              cell: r => <Tag tone={LATEST_RESULT[r.latest].tone}>{LATEST_RESULT[r.latest].label}</Tag>,
             },
           ]}
         />
@@ -118,10 +107,10 @@ export default async function PersonPage({ params }: { params: Promise<{ userId:
             },
             {
               key: 'result',
-              header: 'Result',
+              header: 'What happened',
               cell: r => (
                 <>
-                  {STATUS[r.status]} {r.unsafe && <Tag tone="unsafe">Unsafe</Tag>}
+                  {CALL_STATUS[r.status]} {r.unsafe && <Tag tone="unsafe">Unsafe</Tag>}
                 </>
               ),
             },

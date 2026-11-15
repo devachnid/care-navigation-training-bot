@@ -2,18 +2,23 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { can } from '@/policy/can';
-import { listApproverNames } from '@/scenarios/approval-dal';
+import { getDraftsAllowed, listApproverNames } from '@/scenarios/approval-dal';
 import { valuesFromContent } from '@/scenarios/form';
 import { getScenario } from '@/scenarios/practice-dal';
 import { Alert, Card, PageHeader, Section, SubmitButton, Tag } from '@/ui';
+import { formatDateTime } from '@/app/_lib/dates';
 import { requireAbility } from '@/app/_lib/guard';
 import { setVisibilityAction } from '../actions';
-import { DIFFICULTY_LABEL, formatWhen } from '../labels';
+import { DIFFICULTY_LABEL } from '../labels';
 import { ScenarioForm } from '../scenario-form';
 import styles from '../scenarios.module.css';
-import { ApproveForm, TryCallForm } from './status-forms';
+import { ApprovalPanel, TryCallForm } from './status-forms';
 
-export const metadata: Metadata = { title: 'Scenario' };
+export async function generateMetadata(props: PageProps<'/scenarios/[id]'>): Promise<Metadata> {
+  const actor = await requireAbility('scenarios.manage');
+  const scenario = await getScenario(actor, (await props.params).id);
+  return { title: scenario ? `${scenario.title} | Scenarios` : 'Scenarios' };
+}
 
 export default async function ScenarioPage(props: PageProps<'/scenarios/[id]'>) {
   const actor = await requireAbility('scenarios.manage');
@@ -22,9 +27,12 @@ export default async function ScenarioPage(props: PageProps<'/scenarios/[id]'>) 
   if (!scenario) notFound();
 
   const canApprove = can(actor, 'scenarios.approve');
-  const approvers = scenario.approved ? [] : await listApproverNames(actor);
+  const [approvers, draftsAllowed] = await Promise.all([
+    scenario.approved || canApprove ? Promise.resolve([]) : listApproverNames(actor),
+    scenario.approved || !scenario.active ? Promise.resolve(false) : getDraftsAllowed(actor),
+  ]);
   const who = scenario.approvedByName ?? 'a clinician';
-  const at = scenario.approvedAt ? ` on ${formatWhen(scenario.approvedAt)}` : '';
+  const at = scenario.approvedAt ? ` on ${formatDateTime(scenario.approvedAt)}` : '';
 
   return (
     <>
@@ -32,11 +40,7 @@ export default async function ScenarioPage(props: PageProps<'/scenarios/[id]'>) 
         back={{ href: '/scenarios', label: 'All scenarios' }}
         eyebrow="Scenario"
         title={scenario.title}
-        lead={
-          <>
-            <Tag tone={scenario.difficulty}>{DIFFICULTY_LABEL[scenario.difficulty]}</Tag>
-          </>
-        }
+        lead={<Tag tone={scenario.difficulty}>{DIFFICULTY_LABEL[scenario.difficulty]}</Tag>}
       />
 
       <Section title="Status">
@@ -65,7 +69,9 @@ export default async function ScenarioPage(props: PageProps<'/scenarios/[id]'>) 
                   <span>
                     {scenario.approved
                       ? 'Staff can see and practise it.'
-                      : 'Staff cannot practise it until it is approved, unless your practice allows drafts.'}
+                      : draftsAllowed
+                        ? 'Staff can practise it, because your practice lets staff practise on drafts (see Settings). Its answer key has not been checked yet.'
+                        : 'Staff cannot see it until it is approved. Managers and clinicians who can approve can still try it.'}
                   </span>
                 ) : (
                   <span>No staff can see it. Show it again when you want them to practise it.</span>
@@ -87,17 +93,21 @@ export default async function ScenarioPage(props: PageProps<'/scenarios/[id]'>) 
         </Card>
       </Section>
 
-      {!scenario.approved && (
-        <Section
-          title="Approval"
-          description="A clinician checks the scenario, and especially its answer key, against your practice’s own protocols."
-        >
-          {canApprove ? (
-            <Card>
-              <p className={styles.note}>Version last saved {formatWhen(scenario.updatedAt)}. Read the answer key below before you approve.</p>
-              <ApproveForm scenarioId={scenario.id} revision={scenario.revision} />
-            </Card>
-          ) : (
+      {canApprove ? (
+        <ApprovalPanel
+          key={scenario.revision}
+          scenarioId={scenario.id}
+          revision={scenario.revision}
+          approved={scenario.approved}
+          active={scenario.active}
+          savedAt={formatDateTime(scenario.updatedAt)}
+        />
+      ) : (
+        !scenario.approved && (
+          <Section
+            title="Approval"
+            description="A clinician checks the scenario, and especially its answer key, against your practice’s own protocols."
+          >
             <Alert tone="info" title="You cannot approve scenarios">
               {approvers.length > 0 ? (
                 <>Ask {approvers.join(', ')} to check and approve this one.</>
@@ -110,8 +120,8 @@ export default async function ScenarioPage(props: PageProps<'/scenarios/[id]'>) 
                 <>Nobody at your practice can approve scenarios yet. Ask your practice manager to give a clinician that permission.</>
               )}
             </Alert>
-          )}
-        </Section>
+          </Section>
+        )
       )}
 
       <Section

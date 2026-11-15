@@ -31,7 +31,7 @@ export function PeopleTable({ people }: { people: PersonRow[] }) {
         <input key={p.userId} type="hidden" name={`name-${p.userId}`} value={p.name} />
       ))}
       <DataTable
-        caption="People in this practice"
+        caption="Staff in this practice"
         rows={people}
         rowKey={p => p.userId}
         empty="Nobody has joined yet. Invite a manager above."

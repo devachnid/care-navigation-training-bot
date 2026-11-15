@@ -3,7 +3,17 @@ import { lookupInvitation } from '@/auth/invitations';
 import { Alert, PageHeader } from '@/ui';
 import { InviteForm } from './invite-form';
 
-export const metadata: Metadata = { title: 'Your invitation', robots: { index: false, follow: false } };
+export async function generateMetadata({ params }: { params: Promise<{ token: string }> }): Promise<Metadata> {
+  const details = await lookupInvitation((await params).token);
+  const title = !details
+    ? 'This link cannot be used'
+    : details.kind === 'reset'
+      ? 'Choose a new password'
+      : details.existingAccount
+        ? `Join ${details.practiceName ?? 'a practice'}`
+        : 'Create your account';
+  return { title, robots: { index: false, follow: false } };
+}
 
 export default async function InvitePage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;

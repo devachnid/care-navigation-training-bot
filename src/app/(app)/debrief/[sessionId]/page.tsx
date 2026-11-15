@@ -3,21 +3,23 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getMyFlag } from '@/debrief/flags-dal';
 import { RUBRIC, type QuotedPoint, type RubricScores } from '@/debrief/rubric';
-import { formatClock } from '@/call/limit';
 import { getDebrief, getSession, getTurns } from '@/sessions/dal';
 import { Alert, Button, Card, DataTable, PageHeader, Section, Stat, StatGroup, SubmitButton } from '@/ui';
+import { formatDateTime, formatDuration } from '@/app/_lib/dates';
 import { requireAbility } from '@/app/_lib/guard';
 import stack from '@/app/_lib/stack.module.css';
 import { retryDebriefAction } from './actions';
 import styles from './debrief.module.css';
-import { FlagForm } from './flag-form';
+import { FlagPanel } from './flag-form';
 
-export const metadata: Metadata = { title: 'Debrief' };
+export async function generateMetadata({ params }: { params: Promise<{ sessionId: string }> }): Promise<Metadata> {
+  const actor = await requireAbility('sessions.viewOwn');
+  const session = await getSession(actor, (await params).sessionId);
+  return { title: session ? `Debrief: ${session.scenario.title}` : 'Debrief' };
+}
 
 // Trying the debrief again runs the assessor model from this page, which can take a while.
 export const maxDuration = 120;
-
-const when = new Intl.DateTimeFormat('en-GB', { dateStyle: 'long', timeStyle: 'short', timeZone: 'Europe/London' });
 
 function Points({ title, points }: { title: string; points: QuotedPoint[] }) {
   if (points.length === 0) return null;
@@ -51,7 +53,7 @@ export default async function DebriefPage({ params }: { params: Promise<{ sessio
     getMyFlag(actor, sessionId),
   ]);
 
-  const called = `${when.format(session.startedAt)}${session.durationSeconds === null ? '' : `, ${formatClock(session.durationSeconds)} long`}`;
+  const called = `${formatDateTime(session.startedAt)}${session.durationSeconds === null ? '' : `. It lasted ${formatDuration(session.durationSeconds)}`}`;
   const rubric: RubricRow[] = debrief?.rubricScores
     ? RUBRIC.map(r => ({ key: r.key, label: r.label, item: debrief.rubricScores![r.key] }))
     : [];
@@ -162,15 +164,11 @@ export default async function DebriefPage({ params }: { params: Promise<{ sessio
 
       {session.status === 'complete' && debrief && (
         <Section title="Report a problem with this debrief">
-          {myFlag ? (
-            <Alert tone="info" title="You reported a problem with this debrief">
-              <p className={styles.reported}>
-                “{myFlag.reason}” {myFlag.resolved ? 'A manager has dealt with your report.' : 'A manager will look at it.'}
-              </p>
-            </Alert>
-          ) : (
-            <FlagForm sessionId={sessionId} />
-          )}
+          <FlagPanel
+            sessionId={sessionId}
+            isOwn={session.isOwn}
+            existing={myFlag ? { reason: myFlag.reason, resolved: myFlag.resolved } : null}
+          />
         </Section>
       )}
 

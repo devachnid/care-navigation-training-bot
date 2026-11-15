@@ -5,7 +5,8 @@ import { listMembers, type Member } from '@/practices/dal';
 import { listTeamStats, type TeamStats } from '@/practices/team-dal';
 import { Button, DataTable, PageHeader, Section, Tag } from '@/ui';
 import { requireAbility } from '@/app/_lib/guard';
-import { formatDate, formatDateTime, roleLabel } from './format';
+import { formatDate, formatDateTime } from '@/app/_lib/dates';
+import { roleLabel } from '@/app/_lib/labels';
 import { InviteForm } from './invite-form';
 import { RevokeForm } from './revoke-form';
 import styles from './team.module.css';
@@ -28,13 +29,13 @@ export default async function TeamPage() {
     <>
       <PageHeader
         title="Team"
-        lead={`Everyone at ${actor.membership.practiceName}, with how their practice calls are going. Choose a name to see their calls or to change what they can do.`}
+        lead={`The staff at ${actor.membership.practiceName}, with how their practice calls are going. Choose a name to see their calls or to change what they can do.`}
         actions={<Button href="#invite">Invite someone</Button>}
       />
 
-      <Section title="People in your practice">
+      <Section title="Staff in your practice">
         <DataTable<Row>
-          caption="People in your practice, with their calls"
+          caption="Staff in your practice, with their calls"
           rows={rows}
           rowKey={r => r.userId}
           columns={[
@@ -122,7 +123,7 @@ export default async function TeamPage() {
       </Section>
 
       {resets.length > 0 && (
-        <Section title="Password reset links not yet used" description="Each works once. Revoke one if it was made by mistake.">
+        <Section title="Password reset links not yet used" description="Each works once. Cancel one if it was made by mistake.">
           <DataTable<PendingInvitation>
             caption="Password reset links waiting to be used"
             rows={resets}
