@@ -1,11 +1,50 @@
-import { describe, expect, it } from 'vitest';
-import { checkPasswordPolicy, hashPassword, verifyPassword, verifyAgainstNothing } from './password';
+import { afterEach, describe, expect, it } from 'vitest';
+import {
+  PASSWORD_PARAMS,
+  TEST_PASSWORD_PARAMS,
+  checkPasswordPolicy,
+  hashPassword,
+  needsRehash,
+  setPasswordCostForTests,
+  verifyPassword,
+  verifyAgainstNothing,
+} from './password';
+
+afterEach(() => setPasswordCostForTests(TEST_PASSWORD_PARAMS));
+
+describe('production cost', () => {
+  it('is scrypt N=2^17, r=8, p=1 for new hashes', async () => {
+    expect(PASSWORD_PARAMS).toEqual({ N: 131072, r: 8, p: 1 });
+    setPasswordCostForTests(undefined);
+    const h = await hashPassword('correct horse battery');
+    expect(h.split('$').slice(0, 4)).toEqual(['scrypt', '131072', '8', '1']);
+    expect(await verifyPassword('correct horse battery', h)).toBe(true);
+    expect(needsRehash(h)).toBe(false);
+  });
+  it('still verifies hashes made with older, cheaper parameters, and says they need rehashing', async () => {
+    setPasswordCostForTests({ N: 16384, r: 8, p: 1 });
+    const old = await hashPassword('correct horse battery');
+    setPasswordCostForTests(undefined);
+    expect(await verifyPassword('correct horse battery', old)).toBe(true);
+    expect(needsRehash(old)).toBe(true);
+    expect(needsRehash('garbage')).toBe(true);
+  });
+  it('the cheap test cost cannot be switched on outside vitest', () => {
+    const was = process.env.VITEST;
+    delete process.env.VITEST;
+    try {
+      expect(() => setPasswordCostForTests({ N: 1024, r: 8, p: 1 })).toThrow();
+    } finally {
+      process.env.VITEST = was;
+    }
+  });
+});
 
 describe('hashPassword / verifyPassword', () => {
   it('stores scrypt with its parameters, salt and hash', async () => {
     const h = await hashPassword('correct horse battery');
     const parts = h.split('$');
-    expect(parts.slice(0, 4)).toEqual(['scrypt', '16384', '8', '1']);
+    expect(parts.slice(0, 4)).toEqual(['scrypt', String(TEST_PASSWORD_PARAMS.N), '8', '1']);
     expect(Buffer.from(parts[4], 'base64').length).toBe(16);
     expect(Buffer.from(parts[5], 'base64').length).toBe(64);
   });
@@ -23,8 +62,10 @@ describe('hashPassword / verifyPassword', () => {
     expect(await verifyPassword('correct horse battery', null)).toBe(false);
     expect(await verifyPassword('correct horse battery', '')).toBe(false);
     expect(await verifyPassword('correct horse battery', 'bcrypt$x')).toBe(false);
-    expect(await verifyPassword('correct horse battery', h.replace('$16384$', '$1024$'))).toBe(false);
-    expect(await verifyPassword('correct horse battery', h.replace('$16384$', '$99999999$'))).toBe(false);
+    const n = `$${TEST_PASSWORD_PARAMS.N}$`;
+    expect(await verifyPassword('correct horse battery', h.replace(n, '$2048$'))).toBe(false);
+    expect(await verifyPassword('correct horse battery', h.replace(n, '$99999999$'))).toBe(false);
+    expect(await verifyPassword('correct horse battery', h.replace(n, '$262144$'))).toBe(false);
     expect(await verifyPassword('correct horse battery', h.slice(0, -4))).toBe(false);
   });
   it('verifyAgainstNothing always fails (used so an unknown email still costs one scrypt)', async () => {
