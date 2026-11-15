@@ -3,7 +3,12 @@ import { Section, PageHeader } from '@/ui';
 import { requireAbility } from '@/app/_lib/guard';
 import { ScenarioForm } from '../scenario-form';
 
-export const metadata: Metadata = { title: 'Write a new scenario' };
+// The title is worked out behind the same access check as the page, so someone who may not see this page
+// gets the "Page not found" title, not the name of a page they were told does not exist.
+export async function generateMetadata(): Promise<Metadata> {
+  await requireAbility('scenarios.manage');
+  return { title: 'Write a new scenario' };
+}
 
 export default async function NewScenarioPage() {
   await requireAbility('scenarios.manage');

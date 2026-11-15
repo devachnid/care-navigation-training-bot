@@ -11,7 +11,12 @@ import { InviteForm } from './invite-form';
 import { RevokeForm } from './revoke-form';
 import styles from './team.module.css';
 
-export const metadata: Metadata = { title: 'Team' };
+// The title is worked out behind the same access check as the page, so someone who may not see this page
+// gets the "Page not found" title, not the name of a page they were told does not exist.
+export async function generateMetadata(): Promise<Metadata> {
+  await requireAbility('team.manage');
+  return { title: 'Team' };
+}
 
 type Row = Member & { stats: TeamStats | undefined };
 
@@ -47,7 +52,10 @@ export default async function TeamPage() {
                 <>
                   <Link href={`/team/${r.userId}`}>{r.name}</Link>
                   {r.userId === actor.userId && <span className={styles.you}> (you)</span>}
-                  <span className={styles.email}>{r.email}</span>
+                  <span className={styles.email}>
+                    {r.email.split('@')[0]}@<wbr />
+                    {r.email.split('@').slice(1).join('@')}
+                  </span>
                 </>
               ),
             },

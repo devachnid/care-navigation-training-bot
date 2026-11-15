@@ -6,7 +6,12 @@ import { formatDate, formatMonth } from '@/app/_lib/dates';
 import { requireAbility } from '@/app/_lib/guard';
 import { AddPracticeForm } from './add-practice-form';
 
-export const metadata: Metadata = { title: 'Admin' };
+// The title is worked out behind the same access check as the page, so someone who may not see this page
+// gets the "Page not found" title, not the name of a page they were told does not exist.
+export async function generateMetadata(): Promise<Metadata> {
+  await requireAbility('platform.admin');
+  return { title: 'Admin' };
+}
 
 
 export default async function AdminPage() {

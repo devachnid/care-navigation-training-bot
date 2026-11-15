@@ -4,7 +4,10 @@ import { isSetupOpen } from '@/auth/setup';
 import { PageHeader } from '@/ui';
 import { SetupForm } from './setup-form';
 
-export const metadata: Metadata = { title: 'Set up' };
+export async function generateMetadata(): Promise<Metadata> {
+  if (!(await isSetupOpen())) notFound();
+  return { title: 'Set up' };
+}
 
 // Whether setup is open is read from the database on every request. Without this the page would be built once, at deploy time.
 export const dynamic = 'force-dynamic';

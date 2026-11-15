@@ -9,7 +9,12 @@ import { LibraryList } from './library-list';
 import { DIFFICULTY_LABEL, approvalLine } from './labels';
 import styles from './scenarios.module.css';
 
-export const metadata: Metadata = { title: 'Scenarios' };
+// The title is worked out behind the same access check as the page, so someone who may not see this page
+// gets the "Page not found" title, not the name of a page they were told does not exist.
+export async function generateMetadata(): Promise<Metadata> {
+  await requireAbility('scenarios.manage');
+  return { title: 'Scenarios' };
+}
 
 const DIFFICULTY_RANK = { easy: 0, medium: 1, hard: 2 } as const;
 

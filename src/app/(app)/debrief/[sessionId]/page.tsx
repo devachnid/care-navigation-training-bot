@@ -15,7 +15,8 @@ import { FlagPanel } from './flag-form';
 export async function generateMetadata({ params }: { params: Promise<{ sessionId: string }> }): Promise<Metadata> {
   const actor = await requireAbility('sessions.viewOwn');
   const session = await getSession(actor, (await params).sessionId);
-  return { title: session ? `Debrief: ${session.scenario.title}` : 'Debrief' };
+  if (!session) notFound();
+  return { title: `Debrief: ${session.scenario.title}` };
 }
 
 // Trying the debrief again runs the assessor model from this page, which can take a while.

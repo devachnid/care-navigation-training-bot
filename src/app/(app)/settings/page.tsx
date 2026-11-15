@@ -7,7 +7,12 @@ import { requireAbility } from '@/app/_lib/guard';
 import { formatDateTime } from '@/app/_lib/dates';
 import { SettingsForm } from './settings-form';
 
-export const metadata: Metadata = { title: 'Settings' };
+// The title is worked out behind the same access check as the page, so someone who may not see this page
+// gets the "Page not found" title, not the name of a page they were told does not exist.
+export async function generateMetadata(): Promise<Metadata> {
+  await requireAbility('practice.settings');
+  return { title: 'Settings' };
+}
 
 export default async function SettingsPage() {
   const actor = await requireAbility('practice.settings');

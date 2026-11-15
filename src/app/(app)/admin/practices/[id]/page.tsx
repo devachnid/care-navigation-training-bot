@@ -17,7 +17,8 @@ import styles from '../../admin.module.css';
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const actor = await requireAbility('platform.admin');
   const practice = await getPracticeDetail(actor, (await params).id);
-  return { title: practice ? `${practice.name} | Admin` : 'Admin' };
+  if (!practice) notFound();
+  return { title: `${practice.name} | Admin` };
 }
 
 

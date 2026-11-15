@@ -18,7 +18,12 @@ import { DIFFICULTY_LABEL, LATEST_RESULT } from '@/app/_lib/labels';
 import { resolveFlagAction } from './actions';
 import styles from './reports.module.css';
 
-export const metadata: Metadata = { title: 'Reports' };
+// The title is worked out behind the same access check as the page, so someone who may not see this page
+// gets the "Page not found" title, not the name of a page they were told does not exist.
+export async function generateMetadata(): Promise<Metadata> {
+  await requireAbility('reports.view');
+  return { title: 'Reports' };
+}
 
 const periodHref = (p: Period) => `/reports?period=${p}`;
 

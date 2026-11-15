@@ -15,7 +15,8 @@ import styles from '../team.module.css';
 export async function generateMetadata({ params }: { params: Promise<{ userId: string }> }): Promise<Metadata> {
   const actor = await requireAbility('team.manage');
   const person = await getMember(actor, (await params).userId);
-  return { title: person ? `${person.name} | Team` : 'Team' };
+  if (!person) notFound();
+  return { title: `${person.name} | Team` };
 }
 
 export default async function PersonPage({ params }: { params: Promise<{ userId: string }> }) {

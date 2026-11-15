@@ -290,6 +290,14 @@ export default function StyleguidePage() {
               defaultValue="Joins the front desk team on Monday."
             />
             <Field label="Practice code" name="code" id="invite-code" defaultValue="MB-204" disabled />
+            <Field
+              label="Email address"
+              name="locked-email"
+              id="invite-locked-email"
+              defaultValue="aisha.rahman@example.test"
+              readOnly
+              hint="Read only: shown so it can be checked, not changed."
+            />
             <div style={row}>
               <SubmitButton pendingLabel="Creating link&hellip;">Create invitation</SubmitButton>
               <Button variant="link" href="/team">

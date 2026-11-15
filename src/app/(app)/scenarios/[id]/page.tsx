@@ -17,7 +17,8 @@ import { ApprovalPanel, TryCallForm } from './status-forms';
 export async function generateMetadata(props: PageProps<'/scenarios/[id]'>): Promise<Metadata> {
   const actor = await requireAbility('scenarios.manage');
   const scenario = await getScenario(actor, (await props.params).id);
-  return { title: scenario ? `${scenario.title} | Scenarios` : 'Scenarios' };
+  if (!scenario) notFound();
+  return { title: `${scenario.title} | Scenarios` };
 }
 
 export default async function ScenarioPage(props: PageProps<'/scenarios/[id]'>) {
