@@ -114,6 +114,25 @@ function FormBody({ values, errors }: { values: Record<string, string>; errors: 
         </span>
       </VisuallyHidden>
 
+      <Section title="Title and difficulty" description="What staff see when they choose a call. Do not put the answer in the title.">
+        <div className={forms.form}>
+          <Field
+            label="Title"
+            name="title"
+            defaultValue={v('title')}
+            error={errors.title}
+            autoComplete="off"
+            hint="A few words saying what the call is about. For example: “Sore throat”."
+          />
+          <Field label="Difficulty" name="difficulty" as="select" defaultValue={v('difficulty') ?? ''} error={errors.difficulty} hint="Easy: the right answer is clear and nothing is hidden. Medium: one detail changes the answer. Hard: something serious is buried, or the caller is hard to read.">
+            <option value="">Choose a difficulty</option>
+            <option value="easy">Easy</option>
+            <option value="medium">Medium</option>
+            <option value="hard">Hard</option>
+          </Field>
+        </div>
+      </Section>
+
       <Section title="The caller" description="Who is ringing. Use an invented person, never a real patient.">
         <div className={forms.form}>
           <Field label="Name" name="personaName" defaultValue={v('personaName')} error={errors.personaName} autoComplete="off" hint="An invented name, for example Delyth Morgan." />
@@ -286,25 +305,6 @@ function FormBody({ values, errors }: { values: Record<string, string>; errors: 
             onAdd={addRow}
             onRemove={removeRow}
           />
-        </div>
-      </Section>
-
-      <Section title="Title and difficulty" description="What staff see when they choose a call. Do not put the answer in the title.">
-        <div className={forms.form}>
-          <Field
-            label="Title"
-            name="title"
-            defaultValue={v('title')}
-            error={errors.title}
-            autoComplete="off"
-            hint="A few words saying what the call is about. For example: “Sore throat”."
-          />
-          <Field label="Difficulty" name="difficulty" as="select" defaultValue={v('difficulty') ?? ''} error={errors.difficulty} hint="Easy: the right answer is clear and nothing is hidden. Medium: one detail changes the answer. Hard: something serious is buried, or the caller is hard to read.">
-            <option value="">Choose a difficulty</option>
-            <option value="easy">Easy</option>
-            <option value="medium">Medium</option>
-            <option value="hard">Hard</option>
-          </Field>
         </div>
       </Section>
     </>

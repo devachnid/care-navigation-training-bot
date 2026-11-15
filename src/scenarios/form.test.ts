@@ -57,7 +57,7 @@ describe('scenario form', () => {
     const errors = fieldErrors(result.error, parsed);
     expect(errors.title).toBe('Enter a title.');
     expect(errors['hiddenFacts-1-fact']).toBe('Row 2 of what they only say if asked: enter the fact.');
-    expect(Object.keys(errors)).toEqual(['hiddenFacts-1-fact', 'title']);
+    expect(Object.keys(errors)).toEqual(['title', 'hiddenFacts-1-fact']);
   });
 
   it('uses the row number as shown, not the identifier, when rows have gaps', () => {

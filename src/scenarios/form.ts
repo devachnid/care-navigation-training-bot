@@ -34,6 +34,8 @@ export type Rows = Record<ListName, number[]>;
 
 /** Field names in the order they appear on the page: for ordering an error summary. */
 export const FIELD_ORDER: readonly string[] = [
+  'title',
+  'difficulty',
   'personaName',
   'personaAge',
   'personaDescription',
@@ -46,8 +48,6 @@ export const FIELD_ORDER: readonly string[] = [
   'acceptableAlternatives',
   'redFlags',
   'unsafeOutcomes',
-  'title',
-  'difficulty',
 ];
 
 const ROW_NAME = /^(hiddenFacts)-(\d+)-(fact|unlockedBy)$|^(acceptableAlternatives|redFlags|unsafeOutcomes)-(\d+)$/;
