@@ -13,7 +13,9 @@
     "db:migrate": "tsx src/db/migrate.ts",
     "db:seed": "tsx src/db/seed.ts",
     "eval:debrief": "tsx evals/debrief/run.ts",
-    "admin:reset-link": "tsx scripts/admin-reset-link.ts"
+    "admin:reset-link": "tsx scripts/admin-reset-link.ts",
+    "e2e": "playwright test --grep-invert @voice",
+    "e2e:voice": "playwright test --grep @voice"
   },
   "dependencies": {
     "@ai-sdk/gateway": "4.0.142",
@@ -29,6 +31,7 @@
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.16",
+    "@playwright/test": "1.63.0",
     "@types/node": "^22.20.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",
