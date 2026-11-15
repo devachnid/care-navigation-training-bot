@@ -63,6 +63,23 @@ describe('invitations', () => {
     expect((await signIn({ email: 'mixed.case@example.com', password: NEW_PASSWORD, ip: null })).ok).toBe(true);
   });
 
+  it('accepting an invitation or a reset link records the sign-in time', async () => {
+    const { practiceId, manager } = await makePractice();
+    const email = fresh();
+    const link = await invite(manager, { email });
+    const accepted = await acceptInvitation({ token: link.token, password: NEW_PASSWORD, privacyAccepted: true });
+    expect(accepted.ok).toBe(true);
+    const [byEmail] = await getDb().select().from(users).where(eq(users.email, email));
+    expect(byEmail.lastSignInAt).toBeInstanceOf(Date);
+
+    const t = await addMember(practiceId, 'trainee');
+    expect((await getDb().select().from(users).where(eq(users.id, t.user.id)))[0].lastSignInAt).toBeNull();
+    const reset = await createResetLink(manager.actor, t.user.id);
+    if (!reset.ok) throw new Error(reset.error);
+    expect((await acceptInvitation({ token: reset.token, password: NEW_PASSWORD, privacyAccepted: false })).ok).toBe(true);
+    expect((await getDb().select().from(users).where(eq(users.id, t.user.id)))[0].lastSignInAt).toBeInstanceOf(Date);
+  });
+
   it('cannot be claimed twice', async () => {
     const { manager } = await makePractice();
     const link = await invite(manager);

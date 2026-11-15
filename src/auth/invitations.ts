@@ -18,7 +18,7 @@ export type InvitationLink = { invitationId: string; token: string; expiresAt: D
 
 export type InviteInput = { email: string; name: string; role: Role; canApproveScenarios: boolean };
 
-const LINK_UNUSABLE = 'This link has expired, been used already or been cancelled. Ask your practice manager for a new one.';
+const LINK_UNUSABLE = 'This link has expired, been used already or been cancelled. Ask whoever sent you the link for a new one.';
 
 // ---------------------------------------------------------------------------
 // Creating invitations
@@ -432,6 +432,7 @@ export async function acceptInvitation(input: AcceptInvitationInput): Promise<Re
       set: { role: inv.role!, canApproveScenarios: inv.canApproveScenarios, deactivatedAt: null },
     });
   await audit({ userId }, 'invitation.accepted', { type: 'invitation', id: inv.id, practiceId }, { role: inv.role, existingAccount });
+  await db.update(users).set({ lastSignInAt: now }).where(eq(users.id, userId));
   return { ok: true, ...(await createSession(userId, practiceId)) };
 }
 
@@ -462,6 +463,7 @@ async function applyResetLink(inv: typeof invitations.$inferSelect, input: Accep
     .set({ passwordHash, ...(needsPrivacyAck ? { privacyAckAt: now } : {}) })
     .where(eq(users.id, userId));
   await deleteUserSessions(userId);
+  await db.update(users).set({ lastSignInAt: now }).where(eq(users.id, userId));
   await audit({ userId }, 'password.reset', { type: 'user', id: userId, practiceId: inv.practiceId }, { invitationId: inv.id });
   return { ok: true, ...(await createSession(userId, await defaultPracticeFor(userId))) };
 }
