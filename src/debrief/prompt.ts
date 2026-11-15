@@ -1,6 +1,12 @@
 import type { Scenario } from '@/scenarios/types';
 import { RUBRIC } from './rubric';
 
+/**
+ * Stored on every debrief (`debriefs.prompt_version`). Change it whenever the wording of
+ * `buildDebriefPrompt` or the rubric changes, so old and new debriefs can be told apart.
+ */
+export const PROMPT_VERSION = '2026-11-15.1';
+
 export type TranscriptLine = { speaker: 'trainee' | 'patient'; text: string };
 
 const list = (items: string[]) => (items.length ? items.map(i => `- ${i}`).join('\n') : '- (none)');
