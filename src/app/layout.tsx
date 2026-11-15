@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { connection } from 'next/server';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -7,7 +8,9 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Every page is rendered per request, so the Content-Security-Policy nonce from src/proxy.ts reaches its scripts.
+  await connection();
   return (
     <html lang="en-GB">
       <body>{children}</body>

@@ -17,6 +17,7 @@ export const metadata: Metadata = { title: 'Debrief' };
 // Trying the debrief again runs the assessor model from this page, which can take a while.
 export const maxDuration = 120;
 
+const dayOnly = new Intl.DateTimeFormat('en-GB', { dateStyle: 'long', timeZone: 'Europe/London' });
 const when = new Intl.DateTimeFormat('en-GB', { dateStyle: 'long', timeStyle: 'short', timeZone: 'Europe/London' });
 
 function Points({ title, points }: { title: string; points: QuotedPoint[] }) {
@@ -146,7 +147,13 @@ export default async function DebriefPage({ params }: { params: Promise<{ sessio
       )}
 
       <Section title="Transcript">
-        {turns.length === 0 ? (
+        {session.transcriptDeletedAt ? (
+          <Alert tone="info" title="The transcript has been deleted">
+            The transcript and quotes from this call were deleted on {dayOnly.format(session.transcriptDeletedAt)}, because{' '}
+            {actor.membership.practiceName} keeps them for{' '}
+            {session.retentionDays === null ? 'a limited time' : `${session.retentionDays} days`}. The scores are kept.
+          </Alert>
+        ) : turns.length === 0 ? (
           <p>Nothing was said on this call.</p>
         ) : (
           <ol className={styles.transcript}>
@@ -160,7 +167,7 @@ export default async function DebriefPage({ params }: { params: Promise<{ sessio
         )}
       </Section>
 
-      {session.status === 'complete' && debrief && (
+      {session.status === 'complete' && debrief && !session.transcriptDeletedAt && (
         <Section title="Report a problem with this debrief">
           {myFlag ? (
             <Alert tone="info" title="You reported a problem with this debrief">

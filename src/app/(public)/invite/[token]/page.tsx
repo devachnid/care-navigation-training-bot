@@ -14,7 +14,7 @@ export default async function InvitePage({ params }: { params: Promise<{ token: 
       <>
         <PageHeader title="This link cannot be used" />
         <Alert tone="warning" title="It may have expired, been used already or been cancelled.">
-          Ask your practice manager for a new link.
+          Ask whoever sent you the link for a new one.
         </Alert>
       </>
     );
