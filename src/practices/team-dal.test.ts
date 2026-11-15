@@ -3,7 +3,7 @@ import { getDb } from '@/db/client';
 import { memberships } from '@/db/schema';
 import { ForbiddenError } from '@/policy/result';
 import { approveScenario, listScenariosForManagement } from '@/scenarios/practice-dal';
-import { endCall, saveDebrief, startCall, type DebriefValues } from '@/sessions/dal';
+import { claimForToken, endCall, saveDebrief, startCall, type DebriefValues } from '@/sessions/dal';
 import { createTestDb } from '@/test/db';
 import { addMember, makePractice, makeUser, seedLibrary, signedIn } from '@/test/fixtures';
 import { listMemberProgress, listTeamStats } from './team-dal';
@@ -31,8 +31,11 @@ const verdict = (over: Partial<DebriefValues>): DebriefValues => ({
 });
 
 async function assessedCall(actor: Parameters<typeof startCall>[0], scenarioId: string, minutesAgo: number, over: Partial<DebriefValues> = {}) {
-  const started = await startCall(actor, scenarioId, new Date(Date.now() - minutesAgo * 60_000));
+  const at = new Date(Date.now() - minutesAgo * 60_000);
+  const started = await startCall(actor, scenarioId, at);
   if (!started.ok) throw new Error(started.error);
+  // The voice connection opened (only a connected call can be assessed).
+  await claimForToken(actor, started.sessionId, at);
   await endCall(actor, started.sessionId, {
     durationSeconds: 100,
     turns: [

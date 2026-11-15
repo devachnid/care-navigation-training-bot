@@ -34,10 +34,6 @@ export async function inviteAction(_prev: LinkState, formData: FormData): Promis
   }
 
   revalidatePath('/team');
-  // TODO(merge): this branch is removed by the security fix (an existing account used to be added with no link).
-  if (!('token' in result)) {
-    return { success: true, message: `${name} already has an account, so they have been added to your practice. There is no link to send.` };
-  }
   return {
     success: true,
     message: `Invitation ready for ${name}.`,

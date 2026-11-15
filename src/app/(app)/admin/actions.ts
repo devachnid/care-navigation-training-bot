@@ -48,11 +48,6 @@ export async function inviteManagerAction(_prev: LinkFormState, formData: FormDa
       ? failed(formData, ['name', 'email'], { errors: { email: result.error } })
       : failed(formData, ['name', 'email'], { message: result.error });
   }
-  // TODO(merge): this branch is removed by the security fix
-  if (!('token' in result)) {
-    revalidatePath(`/admin/practices/${practiceId}`);
-    return { success: true, message: `${name} already has an account, so they have been added as a manager. There is no link to send.` };
-  }
   revalidatePath(`/admin/practices/${practiceId}`);
   return {
     success: true,

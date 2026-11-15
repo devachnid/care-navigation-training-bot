@@ -5,7 +5,7 @@ import { debriefs, practiceScenarios, sessions } from '@/db/schema';
 import type { Actor, MemberActor } from '@/policy/actor';
 import { ForbiddenError } from '@/policy/result';
 import { approveScenario, listScenariosForManagement } from '@/scenarios/practice-dal';
-import { endCall, saveDebrief, startCall, type DebriefValues } from '@/sessions/dal';
+import { claimForToken, endCall, saveDebrief, startCall, type DebriefValues } from '@/sessions/dal';
 import { createTestDb } from '@/test/db';
 import { addMember, deactivate, makePractice, seedLibrary } from '@/test/fixtures';
 import { getScenarioBreakdown, getStaffMatrix, getSummary, listExportRows, listRecentUnsafe } from './dal';
@@ -35,6 +35,8 @@ type Kind = {
 async function call(actor: Actor, scenarioId: string, startedAt: Date, kind: Kind): Promise<string> {
   const started = await startCall(actor, scenarioId, startedAt);
   if (!started.ok) throw new Error(started.error);
+  // The voice connection opened (only a connected call can be assessed).
+  await claimForToken(actor, started.sessionId, startedAt);
   const turns = kind.tooShort
     ? [{ speaker: 'patient' as const, text: 'Hello?' }]
     : [
