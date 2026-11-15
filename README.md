@@ -2,7 +2,7 @@
 
 A proof of concept for one GP practice in Wales. A receptionist picks a scenario and has a spoken phone call with an AI playing a patient. Their job is to navigate the caller to the right service. When they hang up, they get the transcript and a scored debrief.
 
-The brief is in [`docs/POC_BRIEF.md`](docs/POC_BRIEF.md). What has and has not been tested is in [`docs/spike-findings.md`](docs/spike-findings.md).
+The brief is in [`docs/archive/poc-brief.md`](docs/archive/poc-brief.md). What has and has not been tested is in [`docs/engineering/voice-findings.md`](docs/engineering/voice-findings.md).
 
 > **Not for wider use as it stands.** Access is a single shared code plus a typed name. That is not authentication: anyone with the code can type someone else's name and see their calls. Replace it with real sign-in before this goes beyond a handful of trusted users at one practice. The scenarios are also unapproved drafts (see below).
 

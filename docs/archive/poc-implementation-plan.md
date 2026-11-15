@@ -8,7 +8,7 @@
 
 **Tech Stack:** Next.js 16 (App Router, TypeScript), `ai@^7` + `@ai-sdk/react@^4` + `@ai-sdk/gateway` (stable, not canary), Drizzle ORM + `@neondatabase/serverless`, Zod, Vitest.
 
-**Spec:** `docs/POC_BRIEF.md`
+**Spec:** `docs/archive/poc-brief.md`
 
 ## Global Constraints
 
@@ -207,7 +207,7 @@ All personas are invented names. Run `npm test` — expect PASS.
 
 Hard-coded prompt, no database. The deliverable is a working call plus written answers to the four unverified points above.
 
-**Files:** create `src/app/api/spike/token/route.ts`, `src/app/spike/page.tsx`, `docs/spike-findings.md`.
+**Files:** create `src/app/api/spike/token/route.ts`, `src/app/spike/page.tsx`, `docs/engineering/voice-findings.md`.
 
 - [ ] **Step 1: Read the two packaged docs** named in Global Constraints from `node_modules/ai/docs`. If anything below disagrees with them, the installed docs win.
 
@@ -289,7 +289,7 @@ export default function Spike() {
 }
 ```
 
-- [ ] **Step 4: Run it.** `npm run dev`, open `/spike` in Chrome with a headset, hold a 60-second conversation. Record in `docs/spike-findings.md`:
+- [ ] **Step 4: Run it.** `npm run dev`, open `/spike` in Chrome with a headset, hold a 60-second conversation. Record in `docs/engineering/voice-findings.md`:
   1. Did the patient speak first without the trainee speaking?
   2. Did `TRAINEE` lines appear for every trainee turn? (If none: flag back, propose direct OpenAI.)
   3. Does a `TRAINEE` line ever arrive after the `PATIENT` reply to it? (Expected yes; Task 3's assembler handles it.)
@@ -400,7 +400,7 @@ RULES
 - Once a plan is agreed, or the receptionist ends the call, say a brief natural goodbye and stop talking.
 ```
 
-Run — PASS. `buildSessionConfig` returns this as `instructions`, plus the voice and reasoning-effort `providerOptions` recorded in `docs/spike-findings.md`.
+Run — PASS. `buildSessionConfig` returns this as `instructions`, plus the voice and reasoning-effort `providerOptions` recorded in `docs/engineering/voice-findings.md`.
 
 - [ ] **Step 4: Transcript assembler test.** The realtime API transcribes the trainee asynchronously, so their text can arrive after the patient's reply. Order comes from `conversation-item-added`, text is filled in later.
 
