@@ -36,6 +36,7 @@ export type FieldProps = InputFieldProps | SelectFieldProps | TextareaFieldProps
 export function Field(props: FieldProps) {
   const { label, hint, error, name, id: idProp, ...others } = props;
   const id = idProp ?? name;
+  const readOnly = 'readOnly' in others && others.readOnly === true;
   const hintId = hint ? `${id}-hint` : undefined;
   const errorId = error ? `${id}-error` : undefined;
   const control = {
@@ -64,6 +65,7 @@ export function Field(props: FieldProps) {
     <div className={cx(styles.field, error ? styles.invalid : false)}>
       <label htmlFor={id} className={styles.label}>
         {label}
+        {readOnly && <span className={styles.readOnlyNote}> (cannot be changed)</span>}
       </label>
       {hint && <Hint id={hintId}>{hint}</Hint>}
       {error && <FieldError id={errorId}>{error}</FieldError>}

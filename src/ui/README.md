@@ -12,7 +12,7 @@ Shared components. Import from `@/ui`. Each has a colocated CSS Module that read
 | `Button` | Any action or link that looks like one | `<Button variant="go" size="large" href="/call/1">Start the call</Button>` |
 | `SubmitButton` (client) | Submit that shows a pending label | `<SubmitButton pendingLabel="Saving…">Save</SubmitButton>` |
 | `ConfirmButton` (client) | Destructive action needing a second click, inside a `<form action>` | `<ConfirmButton label="Deactivate" question="They will not be able to sign in." name="userId" value={id} />` |
-| `Field` | Labelled input, select or textarea with hint and error | `<Field label="Email" name="email" type="email" hint="…" error={errors.email} defaultValue={v.email} />` (`as="select"` or `as="textarea"` for the others) |
+| `Field` | Labelled input, select or textarea with hint and error | `<Field label="Email" name="email" type="email" hint="…" error={errors.email} defaultValue={v.email} />` (`as="select"` or `as="textarea"` for the others). A `readOnly` field gets a dashed edge and "(cannot be changed)" in its label |
 | `Checkbox` | One tick box | `<Checkbox name="approver" label="Can approve scenarios" />` |
 | `RadioGroup` | Exclusive choices | `<RadioGroup legend="Role" name="role" options={[{ value: 'trainee', label: 'Trainee' }]} />` |
 | `Fieldset` | Group related controls | `<Fieldset legend="Permissions">…</Fieldset>` |

@@ -1,4 +1,7 @@
 .scroll {
+  /* A positioning context, so visually hidden text inside the table (absolutely positioned) stays inside
+     the scrolling region and cannot push the page sideways. */
+  position: relative;
   overflow-x: auto;
   border: 2px solid var(--line);
   border-radius: var(--radius-m);
