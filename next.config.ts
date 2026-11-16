@@ -23,12 +23,16 @@ const secretPageHeaders = [
   { key: 'Referrer-Policy', value: 'no-referrer' },
 ];
 
+// Staging (carenav-staging.ashgrovemedicalgroup.app) and every other preview build: keep them out of search results.
+const isPreview = process.env.VERCEL_ENV === 'preview';
+
 const nextConfig: NextConfig = {
   async headers() {
     return [
       { source: '/:path*', headers: securityHeaders },
       { source: '/invite/:path*', headers: secretPageHeaders },
       { source: '/setup', headers: secretPageHeaders },
+      ...(isPreview ? [{ source: '/:path*', headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }] }] : []),
     ];
   },
 };
