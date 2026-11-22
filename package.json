@@ -44,5 +44,10 @@
     "typescript": "^5",
     "vitest": "^5.1.0",
     "ws": "^8.22.2"
+  },
+  "overrides": {
+    "@esbuild-kit/core-utils": {
+      "esbuild": "^0.25.12"
+    }
   }
 }
