@@ -15,6 +15,34 @@
       "when": 1794351037885,
       "tag": "0001_smooth_smasher",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794776726717,
+      "tag": "0002_nervous_leo",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794779379019,
+      "tag": "0003_secret_spot",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794781008840,
+      "tag": "0004_watery_talon",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794782397611,
+      "tag": "0005_kind_magik",
+      "breakpoints": true
     }
   ]
 }

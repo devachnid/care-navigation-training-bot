@@ -1,0 +1,37 @@
+.nav {
+  margin-bottom: var(--space-6);
+  border-bottom: 2px solid var(--line);
+}
+
+.list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 3rem;
+  padding: 0 var(--space-1);
+  /* The underline sits on the nav's own rule. */
+  margin-bottom: -2px;
+  border-bottom: 0.3125rem solid transparent;
+  color: var(--ink);
+  font-size: var(--text-m);
+  text-decoration: none;
+}
+
+.link:hover {
+  border-bottom-color: var(--edge);
+}
+
+.current,
+.current:hover {
+  border-bottom-color: var(--brand);
+  color: var(--brand);
+  font-weight: bold;
+}

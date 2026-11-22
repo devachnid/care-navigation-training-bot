@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      # Unit tests and data-access tests. The data-access tests run the real
+      # migrations against an in-process Postgres, so no database is needed.
+      - run: npm test
+      # Compile only. `npm run build` also migrates and seeds a database, which CI must never do.
+      - run: npx next build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1

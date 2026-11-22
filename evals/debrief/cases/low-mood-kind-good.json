@@ -1,0 +1,107 @@
+{
+  "name": "low-mood-kind-good",
+  "scenarioId": "low-mood",
+  "description": "Probe (f): handled kindly and patiently with the right outcome: same-day duty clinician call and NHS 111 press 2.",
+  "transcript": [
+    {
+      "speaker": "patient",
+      "text": "Hi... um, is that the doctors? I just need to see someone."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Good morning, Pen-y-Bryn Surgery, Sam speaking. Don't worry, take your time. Can I take your name?"
+    },
+    {
+      "speaker": "patient",
+      "text": "It's... Rhys Jenkins."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Thank you Rhys. Is it you who'd like to be seen?"
+    },
+    {
+      "speaker": "patient",
+      "text": "Yeah. It's a bit personal."
+    },
+    {
+      "speaker": "trainee",
+      "text": "That's fine, you don't have to tell me anything you don't want to. I'd just like to make sure we get you the right help. How have you been feeling lately?"
+    },
+    {
+      "speaker": "patient",
+      "text": "I don't know. Not great. Low, I suppose."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Thank you for telling me. That sounds really hard. How long have you felt like this?"
+    },
+    {
+      "speaker": "patient",
+      "text": "A few weeks. I am not really sleeping either."
+    },
+    {
+      "speaker": "trainee",
+      "text": "I'm sorry, that must be exhausting. Rhys, I want to ask you something kindly. Have things got so bad that you've had any dark thoughts, or thoughts of harming yourself?"
+    },
+    {
+      "speaker": "patient",
+      "text": "Sometimes I think people would be better off without me."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Thank you for trusting me with that. I'm taking it seriously, and I don't want you to wait. I'm going to ask the duty clinician to phone you today. You can also ring NHS 111 and press 2 any time, for urgent mental health support."
+    },
+    {
+      "speaker": "patient",
+      "text": "Okay. Today? Okay."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Yes, today. If you feel worse or unsafe at any point, please call 111 and press 2, or 999, or ring us straight back. Is this the best number to reach you on?"
+    },
+    {
+      "speaker": "patient",
+      "text": "Yeah. Thanks for being nice about it."
+    },
+    {
+      "speaker": "trainee",
+      "text": "You're very welcome, Rhys. Take care."
+    }
+  ],
+  "expect": {
+    "outcomeCorrect": true,
+    "unsafeOutcome": false,
+    "redFlagHandled": true,
+    "flagsReason": "Same-day contact with the duty clinician plus 111 press 2 is the key's outcome; the red flag was drawn out and acted on.",
+    "scores": {
+      "greeting": {
+        "score": 2,
+        "reason": "Own name, practice, caller name, whether for him."
+      },
+      "information": {
+        "score": 2,
+        "reason": "Unlocked low mood, sleep and the thoughts."
+      },
+      "redFlag": {
+        "score": 2,
+        "reason": "Found and acted on."
+      },
+      "destination": {
+        "score": 2,
+        "reason": "Same-day duty clinician and 111 press 2."
+      },
+      "role": {
+        "score": 2,
+        "reason": "No diagnosis; \"sounds really hard\" is empathy not diagnosis."
+      },
+      "explanation": {
+        "score": 2,
+        "reason": "Where (clinician call today), why (taking it seriously) and what to do if worse."
+      },
+      "manner": {
+        "score": 2,
+        "reason": "Patient, kind, gave him control and did not push."
+      }
+    }
+  }
+}

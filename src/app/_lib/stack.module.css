@@ -1,0 +1,10 @@
+/* Messages (Alert) at the top of a page: spaced apart from each other and from what follows. Hidden when empty. */
+.alerts {
+  display: grid;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+}
+
+.alerts:empty {
+  display: none;
+}

@@ -1,0 +1,75 @@
+.intro p {
+  margin: 0;
+  max-width: 60rem;
+}
+
+.intro {
+  margin-bottom: var(--space-6);
+}
+
+.library {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.libraryRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.libraryTitle {
+  font-weight: bold;
+}
+
+.status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-5);
+}
+
+.statusLine {
+  margin: 0 0 var(--space-3);
+}
+
+.statusButtons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.note {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--text-s);
+}
+
+.rows {
+  display: grid;
+  gap: var(--space-4);
+  margin: 0 0 var(--space-4);
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border: 2px solid var(--line);
+  border-radius: var(--radius-m);
+  background: var(--wash);
+}
+
+.rowTitle {
+  margin: 0;
+  font-weight: bold;
+}

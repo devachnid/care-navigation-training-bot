@@ -1,0 +1,85 @@
+{
+  "name": "angina-id-done-redflag-missed",
+  "scenarioId": "angina-repeat",
+  "description": "Probe (b): identification done properly (own name, practice, caller name, who the prescription is for), then the red flag is never explored and the prescription is simply processed.",
+  "transcript": [
+    {
+      "speaker": "patient",
+      "text": "Oh hello, is that the surgery? I'm ringing about my prescription."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Good morning, Pen-y-Bryn Surgery, Sam speaking. Could I take your full name please?"
+    },
+    {
+      "speaker": "patient",
+      "text": "Gwilym Pritchard."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Thank you Mr Pritchard. And is this prescription for yourself?"
+    },
+    {
+      "speaker": "patient",
+      "text": "Yes, it's for my angina spray. I've used quite a lot of it."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Okay, I'll put the request through for you. It'll be ready for collection on Thursday."
+    },
+    {
+      "speaker": "patient",
+      "text": "Thursday, right. Thank you."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Is there anything else I can help with?"
+    },
+    {
+      "speaker": "patient",
+      "text": "No, that's all. I won't take up any more of your time."
+    },
+    {
+      "speaker": "trainee",
+      "text": "Goodbye then, Mr Pritchard."
+    }
+  ],
+  "expect": {
+    "outcomeCorrect": false,
+    "unsafeOutcome": true,
+    "redFlagHandled": false,
+    "flagsReason": "Processing the prescription request and ending the call is the listed unsafe outcome.",
+    "scores": {
+      "greeting": {
+        "score": 2,
+        "reason": "Own name, practice, full name of caller, and whether the prescription was for himself were all covered."
+      },
+      "information": {
+        "score": 0,
+        "reason": "Nothing asked beyond the prescription; \"quite a lot of it\" was not followed up."
+      },
+      "redFlag": {
+        "score": 0,
+        "reason": "Not spotted."
+      },
+      "destination": {
+        "score": 0,
+        "reason": "Prescription processed; 999 not advised."
+      },
+      "role": {
+        "score": 2,
+        "reason": "No clinical advice."
+      },
+      "explanation": {
+        "min": 0,
+        "max": 1,
+        "reason": "Told when the prescription is ready; no destination, reason or safety net."
+      },
+      "manner": {
+        "min": 1,
+        "max": 2,
+        "reason": "Polite but missed the cue."
+      }
+    }
+  }
+}

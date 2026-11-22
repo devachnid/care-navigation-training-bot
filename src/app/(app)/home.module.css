@@ -1,0 +1,41 @@
+.list {
+  display: grid;
+  gap: var(--space-4);
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.draftNote,
+.none {
+  margin: 0 0 var(--space-3);
+  color: var(--muted);
+  font-size: var(--text-s);
+}
+
+.progress {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-6);
+  margin: 0 0 var(--space-4);
+}
+
+.progress div {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.progress dt {
+  color: var(--muted);
+  font-size: var(--text-s);
+}
+
+.progress dd {
+  margin: 0;
+  font-size: var(--text-m);
+  font-weight: bold;
+}
+
+.start {
+  margin: 0;
+}
